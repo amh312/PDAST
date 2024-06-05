@@ -268,8 +268,6 @@ plot_probs <- function(df,chosen_test_df,spec_id) {
 # Define UI
 ui <- fluidPage(
   
-  # Application title
-  titlePanel(title=span(img(src="AAST-logo.png",width=200,height=60))),
   
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
