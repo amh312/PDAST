@@ -29,6 +29,9 @@ To reproduce the analysis where all 'I' results are reclassified as 'R'
 To reproduce the multinomial analysis
 2. Run UDAST_LR5.py
 
+To run the prototype application
+2. Run app.R, using "session_urines.csv" as file upload when prompted
+
 *This script uses reticulate to run the python script 'Prediction_run.py' within R, but the script can alternatively be run within python by running code up to and including creation of the 'daily_urines.csv' file, running the Prediction_run.py file in Python, then reading the "probs_df_overall.csv" file into R as the "probs_df_overall" object, then running the rest of the code.
 
 
