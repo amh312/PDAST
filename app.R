@@ -15,9 +15,6 @@ library("sna")
 library("dendextend")
 library("TSP")
 
-setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
-
 micro <- read_csv("micro_clean2.csv")
 drugs <- read_csv("drugs_clean.csv")
 pats <- read_csv("patients.csv")
@@ -351,11 +348,11 @@ server <- function(input, output) {
       
       #LOAD PYTHON PACKAGES AND HEALTHCARE DATASETS
       
-      setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-      path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
+      setwd("#FILEPATH#")
+      path_to_data <- "#FILEPATH#"
       
-      reticulate::use_condaenv("CPE")
-      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Imports & functions.py")
+      reticulate::use_condaenv("#CONDAENV_FILEPATH#")
+      reticulate::source_python("#FILEPATH#/Imports & functions.py")
       
       incProgress(1/55, detail = paste("linking microbiology EHR"))
       incProgress(1/55, detail = paste("linking prescribing EHR"))
@@ -979,10 +976,10 @@ server <- function(input, output) {
       incProgress(1/55, detail = paste("calculating probability predictions"))
       
       daily_urines <- tibble(urines_to_test %>% ungroup() %>% select(subject_id,micro_specimen_id,pAMPr:pTPN))
-      write_csv(daily_urines,"/Users/alexhoward/Documents/Projects/UDAST_code/daily_urines.csv")
+      write_csv(daily_urines,"daily_urines.csv")
       
       #run python module
-      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Prediction_run.py")
+      reticulate::source_python("#FILEPATH#/Prediction_run.py")
       
       updateSelectInput(inputId = "specimen_id",choices=urines_to_test %>%
                           select(micro_specimen_id) %>% arrange(micro_specimen_id))
