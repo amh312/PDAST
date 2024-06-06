@@ -39,8 +39,8 @@ library("dendextend")
 library("coin")
 library("ggrepel")
 
-setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-
+setwd("#FILEPATH#")
+path_to_data <- "#FILEPATH"
 
 
 
@@ -2410,12 +2410,10 @@ binariser <- function(df,NT_class,I_class) {
 
 
 ######################DATA UPLOAD##############################
-setwd("/Users/alexhoward/Documents/Projects/UDAST/UDAST_code")
-path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST/UDAST_code"
+
 
 #CSV files accessible at https://physionet.org/content/mimiciv/2.2/
 drugs <- read_csv("prescriptions.csv")
-pos_urines <- read_csv("pos_urines.csv")
 diagnoses <- read_csv("diagnoses_icd.csv")
 procedures <- read_csv("procedures_icd.csv")
 labevents <- read_csv("labevents.csv")
@@ -2452,7 +2450,7 @@ poe <- poe %>% select(subject_id,ordertime,order_subtype,field_value)
 write_csv(poe,"poe_clean.csv")
 
 #microbiology data - csv file accessible at https://physionet.org/content/mimiciv/2.2/
-micro <- micro_clean("/Users/alexhoward/Documents/Projects/UDAST/UDAST_code","microbiologyevents.csv")
+micro <- micro_clean(path_to_data,"microbiologyevents.csv")
 micro <- intr_mic(micro)
 missings <- data.frame(matrix(ncol=2,nrow=0)) 
 micro <- micro %>% 
@@ -3621,41 +3619,40 @@ urines5_mem <- urines5_mem %>% filter(!(AMP=="S"))
 
 urines5_amp <- tibble(urines5_amp %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_amp <- binariser(urines5_amp,"R","S")
-write_csv(urines5_amp,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_amp.csv")
+write_csv(urines5_amp,"urines5_amp.csv")
 urines5_sam <- tibble(urines5_sam %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_sam <- binariser(urines5_sam,"R","S")
-write_csv(urines5_sam,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_sam.csv")
+write_csv(urines5_sam,"urines5_sam.csv")
 urines5_tzp <- tibble(urines5_tzp %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_tzp <- binariser(urines5_tzp,"R","S")
-write_csv(urines5_tzp,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_tzp.csv")
+write_csv(urines5_tzp,"urines5_tzp.csv")
 urines5_czo <- tibble(urines5_czo %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_czo <- binariser(urines5_czo,"R","S")
-write_csv(urines5_czo,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_czo.csv")
+write_csv(urines5_czo,"urines5_czo.csv")
 urines5_cro <- tibble(urines5_cro %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_cro <- binariser(urines5_cro,"R","S")
-write_csv(urines5_cro,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_cro.csv")
+write_csv(urines5_cro,"urines5_cro.csv")
 urines5_caz <- tibble(urines5_caz %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_caz <- binariser(urines5_caz,"R","S")
-write_csv(urines5_caz,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_caz.csv")
+write_csv(urines5_caz,"urines5_caz.csv")
 urines5_fep <- tibble(urines5_fep %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_fep <- binariser(urines5_fep,"R","S")
-write_csv(urines5_fep,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_fep.csv")
+write_csv(urines5_fep,"urines5_fep.csv")
 urines5_mem <- binariser(urines5_mem,"R","S")
 urines5_mem <- tibble(urines5_mem %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
-write_csv(urines5_mem,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_mem.csv")
+write_csv(urines5_mem,"urines5_mem.csv")
 urines5_cip <- tibble(urines5_cip %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_cip <- binariser(urines5_cip,"R","S")
-write_csv(urines5_cip,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_cip.csv")
+write_csv(urines5_cip,"urines5_cip.csv")
 urines5_gen <- tibble(urines5_gen %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_gen <- binariser(urines5_gen,"R","S")
-write_csv(urines5_gen,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_gen.csv")
+write_csv(urines5_gen,"urines5_gen.csv")
 urines5_sxt <- tibble(urines5_sxt %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_sxt <- binariser(urines5_sxt,"R","S")
-write_csv(urines5_sxt,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_sxt.csv")
+write_csv(urines5_sxt,"urines5_sxt.csv")
 urines5_nit <- tibble(urines5_nit %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
 urines5_nit <- binariser(urines5_nit,"R","S")
-write_csv(urines5_nit,"/Users/alexhoward/Documents/Projects/UDAST_code/urines5_nit.csv")
+write_csv(urines5_nit,"urines5_nit.csv")
 
-write_csv(data.frame(installed.packages()),"packages.csv")
 
 
