@@ -10,6 +10,8 @@ This code was written and run using *R* version 4.3.2 and *Python* version 3.12.
 
 Before running the code, the data and *Python* files should be saved into a local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_2.R**, **PDAST_2B.R**, and **app.R** scripts.
 
+***Reproducing the study***
+
 1. To reproduce the study, the **PDAST_1.R** script and the **Imports & functions.py** script must be run first.
 
 Then, for the subsequent analyses:
@@ -39,4 +41,6 @@ To run the prototype application:
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
 
+***Testing the code on simulated data***
 
+Small simulated datasets have also been provided as CSV files to test the code. In this event, run all of the above code *except* the **PDAST_1.R** file.
