@@ -4,7 +4,7 @@ If you use this code please cite this repository.
 
 ***Instructions for use:***
 
-The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ once the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the *hosp* folder at the bottom of the page: *"prescriptions.csv", "diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv"*, and *"services.csv"*.
+The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ once the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the *hosp* folder at the bottom of the page: *"prescriptions.csv", "diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "microbiologyevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv"*, and *"services.csv"*.
 
 PhysioNet MIMIC-IV citations:
 
