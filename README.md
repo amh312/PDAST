@@ -14,7 +14,7 @@ Before running the code, the data and *Python* files should be saved into a loca
 
 Then, for the subsequent analyses:
 
-To reproduce the main analysis and stability analysis: 
+To reproduce the main analysis, fairness analysis, and stability analysis: 
 2. Run **UDAST_LR.py**; 
 3. Run **PDAST_2.R***
 
