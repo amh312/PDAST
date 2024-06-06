@@ -4,7 +4,7 @@ If you use this code please cite this repository.
 
 ***Instructions for use:***
 
-The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ provided the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the *hosp* folder at the bottom of the page: *"prescriptions.csv", "diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv"*, and *"services.csv"*.
+The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ once the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the *hosp* folder at the bottom of the page: *"prescriptions.csv", "diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv"*, and *"services.csv"*.
 
 This code was written and run using *R* version 4.3.2 and *Python* version 3.12.0, on a laptop computer running macOS Sonoma version 14.5 with an Apple M1 Pro processor, 16GB random-access memory and 10 cores. The code may need to be run in chunks, depending on application memory. The typical run time of all code was approximately 3-4 hours.
 
@@ -40,7 +40,3 @@ To run the prototype application:
 
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
-
-***Testing the code on simulated data***
-
-Small simulated datasets have also been provided as CSV files to test the analysis code. In this event, run all of the above code *except* the **PDAST_1.R** script, and any script pertaining to the stability and fairness analyses (these analyses require the large datasets used in the original study).
