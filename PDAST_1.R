@@ -2891,9 +2891,6 @@ pos_urines <- pos_urines %>% filter(!is.na(TZP))
 #31ST MISSING DATA CHECK
 missing_check(pos_urines)
 
-#FIND COMMONEST CAUSE(S) OF MISSING DATA (30)
-top_m_orgs(pos_urines) %>% arrange(desc(n))
-
 #INPUT MISSING DATA VARIABLE 'NT' FOR ENTEROCOCCUS SPECIES FOR SXT AND MEM
 pos_urines <- pos_urines %>% mutate(MEM = case_when(grepl("Enterococcus",org_fullname) &
                                                       is.na(MEM) ~ "NT",
