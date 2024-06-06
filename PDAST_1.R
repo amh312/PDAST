@@ -3554,7 +3554,6 @@ urines5c <- tibble(urines %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_St
 urines5c <- binariser(urines5c,"R","S")
 write_csv(urines5c, "urines5c.csv")
 write_csv(urines5c_ref,"urines5c_ref.csv")
-write_csv(urines5c_assess,"urines_assess.csv")
 
 
 
