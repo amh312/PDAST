@@ -43,4 +43,4 @@ Please be aware that randomisation processes are used several times throughout t
 
 ***Testing the code on simulated data***
 
-Small simulated datasets have also been provided as CSV files to test the analysis code. In this event, run all of the above code *except* the **PDAST_1.R** script.
+Small simulated datasets have also been provided as CSV files to test the analysis code. In this event, run all of the above code *except* the **PDAST_1.R** script, and any script pertaining to the stability and fairness analyses (these analyses require the large datasets used in the original study).
