@@ -1,16 +1,14 @@
-setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-
 #LOAD PYTHON PACKAGES
-reticulate::use_condaenv("CPE")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Imports & functions.py")
+reticulate::use_condaenv("#CONDAENV_FILEPATH#")
+reticulate::source_python("#FILEPATH#/Imports & functions.py")
 
 #MAKE DATASET FOR PYTHON SCRIPT AND REFERENCE DATAFRAMES
 urines_aware <- urines_assess
 daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_specimen_id,pAMPr:pTPN))
-write_csv(daily_urines,"/Users/alexhoward/Documents/Projects/UDAST_code/daily_urines.csv")
+write_csv(daily_urines,"daily_urines.csv")
 
 #RUN PYTHON PREDICTION SCRIPT
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Prediction_run.py")
+reticulate::source_python("#FILEPATH#/Prediction_run.py")
 
 #make reference frame with multiple growth preserved for descriptive data
 ref_urines_aware <- pos_urines %>% semi_join(urines_aware,by="micro_specimen_id")
@@ -320,7 +318,7 @@ pdast_ws_abs <- watch_s_abs %>% table() %>% stack()
 pdawsabs <- watch_s_abs
 
 #DEDUCE STANDARD PANEL ORDER BASED ON TESTING FREQUENCY
-micro_raw <- read_csv("/Users/alexhoward/Documents/Projects/UDAST/UDAST_code/microbiologyevents.csv")
+micro_raw <- read_csv("microbiologyevents.csv")
 
 ab_vector <- probs_df_overall %>% distinct(Antimicrobial) %>% unlist() %>% as.ab()
 
