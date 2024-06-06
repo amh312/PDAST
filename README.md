@@ -2,11 +2,11 @@ This repository houses the code for the academic paper **"Personalised antimicro
 
 If you use this code please cite this repository.
 
-Instructions for use:
+***Instructions for use:***
 
-The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ provided the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the 'hosp' folder: *"prescriptions.csv",c"diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv", "services.csv"*.
+The source data can be obtained from PhysioNet at https://physionet.org/content/mimiciv/2.2/ provided the terms of access are met. The csv filenames used in this code match the following default filenames that can be downloaded from the *hosp* folder at the bottom of the page: *"prescriptions.csv",c"diagnoses_icd.csv", "procedures_icd.csv", "labevents.csv", "d_labitems.csv", "poe_detail.csv", "poe.csv", "omr.csv", "admissions.csv", "patients.csv", "services.csv"*.
 
-Before running the code, the data and Python files should be saved into a local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** before running the code. The required package versions are included in the **packages.csv** file within this directory.
+Before running the code, the data and Python files should be saved into a local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_2.R**, **PDAST_2B.R**, and **app.R** scripts.
 
 1. To reproduce the study, the **PDAST_1.R** script and the **Imports & functions.py** script must be run first.
 
@@ -32,7 +32,7 @@ To reproduce the multinomial analysis:
 To run the prototype application: 
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.
 
-*This script uses reticulate to run the python script **Prediction_run.py** within R, but the script can alternatively be run within Python by running code up to and including creation of the *"daily_urines.csv"* file, running the **Prediction_run.py** file in Python, then reading the *"probs_df_overall.csv"* file into R as the **probs_df_overall** object, then running the rest of the code.
+*This script uses the *Reticulate* interface package to run the python script **Prediction_run.py** within R, but the script can alternatively be run within Python by running code up to and including creation of the *"daily_urines.csv"* file, running the **Prediction_run.py** file in Python, then reading the *"probs_df_overall.csv"* file into R as the **probs_df_overall** object, then running the rest of the code.
 
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
