@@ -48,4 +48,12 @@ To run the prototype application:
 
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
-Small simulated datasets have also been provided to test run the code if required - these data are synthetic so will not reproduce the results of the main analysis, and will not run for segments of code that pertain to the stability analysis, given that this requires large datasets to partition the data appropriately.
+***Testing the code***
+
+Given the complexity of the analysis, we recommend the process described above to test the full code. However, we have simulated two small synthetic datasets with a very strong correlation between prior resistance and a resistant result, in order to enable the core elements of the model and study design code to be run quickly if required. To run the code:
+
+1. Save the "*Urines5c.csv"* and *"Urines_assess.csv"* synthetic datasets under these filenames
+2. Run **Imports & functions.py**
+3. Run **UDAST_LR2.py**
+4. Run **PDAST_2.R**
+
