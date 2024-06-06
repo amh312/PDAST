@@ -48,4 +48,4 @@ To run the prototype application:
 
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
-Small simulated datasets have also been provided to test run the code if required - these data are synthetic so will not reproduce the results of the main analysis, and will not run for segments of the code that are designed to be run on large datasets (i.e., the fairness analysis and stability analysis).
+Small simulated datasets have also been provided to test run the code if required - these data are synthetic so will not reproduce the results of the main analysis, and will not run for segments of code that pertain to the stability analysis, given that this requires large datasets to partition the data appropriately.
