@@ -3,7 +3,7 @@ reticulate::use_condaenv("#CONDAENV_FILEPATH#")
 reticulate::source_python("#FILEPATH#/Imports & functions.py")
 
 #MAKE DATASET FOR PYTHON SCRIPT AND REFERENCE DATAFRAMES
-urines_aware <- urines_assess
+urines_aware <- read_csv("urines_assess.csv")
 daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_specimen_id,pAMPr:pTPN))
 write_csv(daily_urines,"daily_urines.csv")
 
