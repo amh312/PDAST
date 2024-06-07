@@ -48,9 +48,9 @@ Please be aware that randomisation processes are used several times throughout t
 
 ***Testing the code***
 
-Given the complexity of the analysis, we recommend the process described above to test the full code. However, we have simulated a small synthetic dataset in order to enable the core elements of the model and study design code to be run quickly if required. To run the code:
+Given the complexity of the analysis, we recommend the process described above to test the full code. However, we have simulated a small synthetic dataset in order to enable one variation of the binary logistic regression model pipeline and the microsimulation study design code to be run more quickly if required. To run the code:
 
-1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"patients.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames in a local directory
+1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"urines5.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames in a local directory
 2. Run **Imports & functions.py** and **Packages & functions.R**, populating the **#FILEPATH#** and **#CONDAENV_FILEPATH#** aspects as described above
 3. Run **UDAST_LR2.py**
 4. Run **PDAST_2.R***
