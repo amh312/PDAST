@@ -930,14 +930,6 @@ aware_mk3 = function(df,spec_id,panel_size,acs_cutoff=0.5) {
   
 }
 
-probs_df_overall <- read_csv("probs_df_overall.csv")
-
-for (i in 1:100) {
-  
-  print(probs_df_overall %>% aware_mk3(probs_df_overall$micro_specimen_id[i],6))
-  
-}
-
 
 ################ AWARE mk3
 
