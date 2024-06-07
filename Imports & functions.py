@@ -1013,7 +1013,6 @@ def iter_stab_pred(Antimicrobial_agent):
 import numpy as np
 from itertools import compress
 from statistics import mean, median,mode
-import mca
 import sklearn.metrics
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import LabelBinarizer
