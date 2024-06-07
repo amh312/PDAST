@@ -16,7 +16,7 @@ PhysioNet MIMIC-IV citations:
 
 This code was written and run using *R* version 4.3.2 and *Python* version 3.12.0, on a laptop computer running macOS Sonoma version 14.5 with an Apple M1 Pro processor, 16GB random-access memory and 10 cores. The code may need to be run in chunks, depending on application memory. The typical run time of all code was approximately 3-4 hours.
 
-Before running the code, the data and *Python* files should be saved into a local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_2.R**, **PDAST_2B.R**, and **app.R** scripts.
+Before running the code, the data and *Python* files should be saved into a secure local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_2.R**, **PDAST_2B.R**, and **app.R** scripts.
 
 ***Reproducing the study***
 
