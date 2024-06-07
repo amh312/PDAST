@@ -50,7 +50,7 @@ Please be aware that randomisation processes are used several times throughout t
 
 Given the complexity of the analysis, we recommend the process described above to test the full code. However, we have simulated a small synthetic dataset in order to enable the core elements of the model and study design code to be run quickly if required. To run the code:
 
-1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"patients.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames
+1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"patients.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames in a local directory
 2. Run **Imports & functions.py** and **Packages & functions.R**, populating the **#FILEPATH#** and **#CONDAENV_FILEPATH#** aspects as described above
 3. Run **UDAST_LR2.py**
 4. Run **PDAST_2.R***
@@ -58,4 +58,4 @@ Given the complexity of the analysis, we recommend the process described above t
 The synthetic data is random except for a variable correlation between prior resistance and a resistant result, simulated to yield a credible level of predictive performance for each agent - running code on the synthetic data will not, however, reproduce the results of the main analysis.
 
 
-*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running **PDAST_2C.R** (instead of running **PDAST_2.R** or **PDAST_2B.R**), running the **Prediction_run.py** file in *Python*, then running **PDAST_3.R**.
+*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running **PDAST_2C.R** (instead of running **PDAST_2.R** or **PDAST_2B.R**), running the **Prediction_run.py** file in *Python*, then running **PDAST_3.R**. Remember to substitute in your local directory filepath in place of #FILEPATH#.
