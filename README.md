@@ -57,4 +57,4 @@ Given the complexity of the analysis, we recommend the process described above t
 3. Run **UDAST_LR2.py**
 4. Run **PDAST_2.R**
 
-The synthetic data is random except for a simulated very strong correlation between prior resistance and a resistant result - running code on the synthetic data will not yield meaningful results.
+The synthetic data is random except for a variable correlation between prior resistance and a resistant result, simulated to yield a credible level of predictive performance for each agent - running code on the synthetic data will not, however, reproduce the results of the main analysis.
