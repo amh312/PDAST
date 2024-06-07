@@ -53,7 +53,7 @@ Please be aware that randomisation processes are used several times throughout t
 Given the complexity of the analysis, we recommend the process described above to test the full code. However, we have simulated a small synthetic dataset in order to enable the core elements of the model and study design code to be run quickly if required. To run the code:
 
 1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"patients.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames
-2. Run **Imports & functions.py**
+2. Run **Imports & functions.py** and **Packages & Functions.R**
 3. Run **UDAST_LR2.py**
 4. Run **PDAST_2.R**
 
