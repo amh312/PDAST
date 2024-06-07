@@ -44,8 +44,6 @@ To reproduce the multinomial analysis:
 To run the prototype application: 
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.
 
-*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the script can alternatively be run within *Python* by running code up to and including creation of the *"daily_urines.csv"* file, running the **Prediction_run.py** file in *Python*, then reading the *"probs_df_overall.csv"* file into *R* as the **probs_df_overall** object, then running the rest of the code without the *Reticulate* code lines.
-
 Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
 
 ***Testing the code***
@@ -55,6 +53,9 @@ Given the complexity of the analysis, we recommend the process described above t
 1. Save the "*Urines5c.csv"*, *"Urines_assess.csv"*, *"patients.csv"* *"microbiologyevents.csv"* synthetic datasets under these filenames
 2. Run **Imports & functions.py** and **Packages & functions.R**, populating the **#FILEPATH#** and **#CONDAENV_FILEPATH#** aspects as described above
 3. Run **UDAST_LR2.py**
-4. Run **PDAST_2.R**
+4. Run **PDAST_2.R***
 
 The synthetic data is random except for a variable correlation between prior resistance and a resistant result, simulated to yield a credible level of predictive performance for each agent - running code on the synthetic data will not, however, reproduce the results of the main analysis.
+
+
+*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running **PDAST_2C.R** (instead of running **PDAST_2.R** or **PDAST_2B.R**), running the **Prediction_run.py** file in *Python*, then running **PDAST_3.R**.
