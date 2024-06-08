@@ -113,121 +113,6 @@ def df_clean(filepath,target,to_drop):
     df.insert(0, target, y)
     return(df)
 
-#explainable model comparison
-def mod_compare(target,comp_features,test=0.2,random=1,folds=6,scorer='f1_weighted',
-                cw=None,chosen_metric="weighted f-score",plot_filepath="plot"):
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        comp_features,
-        target,
-        test_size=test,
-        random_state=random
-    )
-
-    mapping = {v: k for k, v in enumerate(set(y_train))}
-    y_train = [mapping[y] for y in y_train]
-
-    models = {"LR": LogisticRegression(max_iter=2000,multi_class="auto",class_weight=cw),
-              "KNN": KNeighborsClassifier(weights='distance'),
-              "DT": DecisionTreeClassifier(class_weight=cw),
-              "SVM":SVC(class_weight=cw)
-              }
-    results = []
-
-    for model in models.values():
-        #  Instantiate a KFold object
-        kf = KFold(n_splits=folds, random_state=random, shuffle=True)
-
-        # Perform cross-validation
-        cv_results = cross_val_score(model, X_train, y_train, cv=kf,scoring=scorer)
-        results.append(cv_results)
-    plt.boxplot(results, labels=models.keys())
-    plt.ylim([0,1])
-    plt.title("Comparison of "+chosen_metric+" for explainable models",pad=25.0)
-    plt.savefig(plot_filepath + ".pdf", format="pdf", bbox_inches="tight")
-    plt.show()
-
-
-
-#LR Multinomial cross-validation
-def lr_multi_crossval(target,cv_features,test=0.2,random=1,folds=6,C_val=0.1,
-                cw=None,model_type="auto",tuned_for="AUC_ROC",target_ab='antibiotic'):
-
-    if len(target.unique()) > 2:
-
-        for label in vari_list:
-
-            X_train, X_test, y_train, y_test = train_test_split(
-                cv_features[vari_list[label]],
-                target,
-                test_size=test,
-                random_state=random
-            )
-            log_reg = LogisticRegression(
-                max_iter=2000,
-                multi_class=model_type,
-                C=C_val,
-                class_weight=cw,
-                n_jobs=-1,
-                penalty='l1',
-                solver='liblinear'
-            )
-
-            results = []
-
-            if label=="R":
-                line_col="red"
-            elif label=="I":
-                line_col="darkorange"
-            elif label=="S":
-                line_col="green"
-            elif label=="NT":
-                line_col="blue"
-
-            cv = RepeatedStratifiedKFold(n_splits=folds, n_repeats=10, random_state=random)
-            auc_scores = cross_val_score(log_reg, X_train, y_train, scoring='roc_auc_ovr_weighted',cv=cv, n_jobs=-1)
-            results.append(auc_scores)
-            plt.boxplot(results,labels=["AUC-ROC"],
-                        patch_artist=True,
-                        boxprops=dict(facecolor="purple")
-                        )
-            plt.ylim([0, 1.01])
-            plt.ylabel("Score")
-            plt.title(target_ab + ":\nAUC-ROC scores using 6-fold cross-validation")
-            plt.savefig(target_ab + label + "-crossval.pdf", format="pdf", bbox_inches="tight")
-            plt.show()
-
-    else:
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            cv_features[vari_list],
-            target,
-            test_size=test,
-            random_state=random
-        )
-        log_reg = LogisticRegression(
-            max_iter=2000,
-            multi_class=model_type,
-            C=C_val,
-            class_weight=cw,
-            n_jobs=-1,
-            penalty='l1',
-            solver='liblinear'
-        )
-        results = []
-
-        cv = RepeatedStratifiedKFold(n_splits=folds, n_repeats=10, random_state=random)
-        auc_scores = cross_val_score(log_reg, X_train, y_train, scoring="roc_auc_ovr_weighted", cv=cv, n_jobs=-1)
-        results.append(auc_scores)
-        plt.boxplot(results, labels=["AUC-ROC"],
-                    patch_artist=True,
-                    boxprops=dict(facecolor="red")
-                    )
-        plt.ylim([0, 1.01])
-        plt.ylabel("Score")
-        plt.title(target_ab + " Model testing using 6-fold cross-validation", pad=25.0)
-        plt.savefig(target_ab + "-crossval.pdf", format="pdf", bbox_inches="tight")
-        plt.show()
 
 
 #LR hyperparameter tuning & feature selection
@@ -604,6 +489,90 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
 
         plt.savefig(ab_of_interest + "-roc.pdf", format="pdf", bbox_inches="tight")
         plt.show()
+
+
+def lr_hyp_tune_feats2(df,target,ht_features,test=0.2,random=1,folds=6,model_type="auto",cw=None,
+                      scorer='f1_weighted',target_ab='antibiotic',targ_result=''):
+    X_train, X_test, y_train, y_test = train_test_split(
+        ht_features,
+        target,
+        test_size=test,
+        random_state=random
+    )
+    log_reg = LogisticRegression(
+        max_iter=2000,
+        multi_class=model_type,
+        class_weight=cw,
+        penalty='l1',
+        solver='liblinear'
+    )
+    param_grid = {"C": np.linspace(0.00001, 1, 10)}
+    kf = KFold(n_splits=folds, random_state=random, shuffle=True)
+    logreg_cv = GridSearchCV(log_reg, param_grid, cv=kf,scoring=scorer)
+    logreg_cv.fit(X_train, y_train)
+    print("Tuned logreg parameters: {}".format(logreg_cv.best_params_))
+    print("Tuned logreg score: {}".format(logreg_cv.best_score_))
+    n_scores = cross_val_score(log_reg, X_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
+    print('Mean Accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
+    best_lr = logreg_cv.best_estimator_
+    global coefs
+    coefs = pd.DataFrame(best_lr.coef_)
+    coefs = coefs.transpose()
+    if len(sorted(coefs)) > 1:
+        coefs.columns = best_lr.classes_
+    print("Total number of features:", len(ht_features.columns))
+    global vari_list
+    vari_list = {}
+
+    if len(sorted(coefs)) > 1:
+        for label in best_lr.classes_:
+            vari_list[label] = best_lr.feature_names_in_[coefs[coefs[label] != 0].index]
+            print("Nonzero features for " + label + ": ", vari_list[label])
+            print("Number of selected features for " + label + ": ",
+                  np.count_nonzero(best_lr.feature_names_in_[coefs[coefs[label] != 0].index]))
+
+            if label == "R":
+                line_col = "red"
+            elif label == "I":
+                line_col = "darkorange"
+            elif label == "S":
+                line_col = "green"
+            elif label == "NT":
+                line_col = "blue"
+
+
+    else:
+        vari_list = best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]
+        print("Nonzero features: ", vari_list)
+        print("Number of selected features: ",
+              np.count_nonzero(best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]))
+
+        fig, ax = plt.subplots()
+        bar_coef = coefs.sort_values(by=0,ascending=False)[0:4].dropna()
+        bar_coef.plot.bar(color="green")
+        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
+                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])
+        plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
+        plt.legend([])
+        plt.tight_layout()
+        plt.savefig(target_ab + targ_result + "-posfeatures.pdf", format="pdf", bbox_inches="tight")
+        plt.show()
+
+        fig, ax = plt.subplots()
+        bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4].dropna())
+        bar_coef.plot.bar(color="green")
+        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
+                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])
+        plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
+        plt.legend([])
+        plt.tight_layout()
+        plt.savefig(target_ab + targ_result + "-negfeatures.pdf",format="pdf",bbox_inches="tight")
+        plt.show()
+
+    global c_value
+    c_dict = logreg_cv.best_params_
+    c_value = list(c_dict.values())[0]
+
 
 
 #Model fairness assessment
