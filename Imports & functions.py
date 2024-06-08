@@ -270,7 +270,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             y_onehot_test = label_binarizer.transform(y_test)
             y_onehot_test.shape  # (n_samples, n_classes)
 
-            print('ROC_AUC score for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
+           
 
             class_id = np.flatnonzero(label_binarizer.classes_ == label)[0]
 
@@ -460,7 +460,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         y_pred_probs = log_reg.predict_proba(X_test)[:,0]
         probs = y_pred_probs
         n_classes = len(np.unique(y_train))
-        print('ROC_AUC score: ', roc_auc_score(y_test, y_pred_probs))
+        
         y_testpred = log_reg.predict(X_test)
         class_report = classification_report(y_test, y_testpred,output_dict=True)
 
