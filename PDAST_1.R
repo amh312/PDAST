@@ -39,8 +39,8 @@ library("dendextend")
 library("coin")
 library("ggrepel")
 
-setwd("#FILEPATH#")
-path_to_data <- "#FILEPATH"
+setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
+path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
 
 
 
@@ -90,7 +90,6 @@ micro_clean <- function(file_location,file_name) {
                       org_name = str_remove(org_name,"CANDIDA INCONSPICUA"),
                       org_name = str_remove(org_name,"/POSADASII"),
                       org_name = str_remove(org_name,"NOT FUMIGATUS, FLAVUS OR NIGER"),
-                      org_name = str_remove(org_name,"MRSA POSITIVE"),
                       org_name = str_remove(org_name,"MRSA NEGATIVE"),
                       org_name = str_remove(org_name,"HISTOLYTICA/DISPAR"),
                       org_name = case_when(grepl("NON-FERMENTER",org_name)~"PSEUDOMONADALES",                     
@@ -541,7 +540,729 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
   
 }
 
-
+#Individual antimicrobial simulations
+COL_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    mutate(colistin_bug = case_when(org_order=="Enterobacterales" & org_family!="Morganellaceae"
+                                    & org_fullname!="Serratia marcescens" & org_fullname!="Hafnia"
+                                    ~ "Enterobacterales",
+                                    TRUE ~ "N")) %>% 
+    res_sim(colistin_bug,"Enterobacterales",org_fullname,"",COL,1,10000,"Colistin",) %>%
+    select(-colistin_bug) %>% 
+    res_sim(org_fullname,"Pseudomonas aeruginosa",org_fullname,"",COL,1,10000,"Colistin",) %>% 
+    res_sim(org_genus,"Acinetobacter",org_fullname,"",COL,1,10000,"Colistin",)
+  
+  
+  COL_summary <- data.frame(rbind(
+    `Enterobacterales_Colistin`,
+    `Pseudomonas aeruginosa_Colistin`,
+    `Acinetobacter_Colistin`
+  ))
+  
+  COLdf <- data.frame(rbind(
+    `Enterobacterales_Colistin_df`,
+    `Pseudomonas aeruginosa_Colistin_df`,
+    `Acinetobacter_Colistin_df`
+  ))
+  
+  COLdf$org_name <- factor(COLdf$org_name, levels = COLdf %>% 
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  COL_plot <- ggplot(COLdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = COLdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Colistin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    scale_fill_brewer(palette = "Spectral") +
+    theme_classic() +
+    theme(legend.position = "none")
+  
+  print(COL_plot)
+  
+  assign("COL_summary",COL_summary,envir = .GlobalEnv)
+  
+  df
+  
+}
+ETP_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Salmonella Typhi",org_fullname,"",ETP,1,1e4,"Ertapenem") %>% 
+    res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",ETP,1,1e4,"Ertapenem") %>%
+    mutate(IPM = case_when(ETP=="S" & is.na(IPM) ~ "S",
+                           TRUE ~ IPM),
+           MEM = case_when(ETP=="S" & is.na(MEM) ~"S",
+                           TRUE ~ MEM))
+  
+  
+  ETP_summary <- data.frame(rbind(
+    `Salmonella Typhi_Ertapenem`,
+    `Haemophilus influenzae_Ertapenem`
+  ))
+  
+  ETPdf <- data.frame(rbind(
+    `Salmonella Typhi_Ertapenem_df`,
+    `Haemophilus influenzae_Ertapenem_df`
+  ))
+  
+  ETPdf$org_name <- factor(ETPdf$org_name, levels = ETPdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  ETP_plot <- ggplot(ETPdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = ETPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Ertapenem"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(ETP_plot)
+  
+  assign("ETP_summary",ETP_summary,envir = .GlobalEnv)
+  
+  df
+  
+}
+CRO_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  
+  df <- df %>%
+    res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
+    res_sim(org_fullname,"Moraxella catarrhalis",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
+    res_sim(org_fullname,"Neisseria meningitidis",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
+    mutate(CTX = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CRO=="S" & is.na(CTX) ~ "S",
+                           TRUE ~ CTX),
+           CAZ = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CRO=="S" & is.na(CAZ) ~ "S",
+                           TRUE ~ CAZ),
+           CZA = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CRO=="S" & is.na(CZA) ~ "S",
+                           TRUE ~ CZA),
+           CPD = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CRO=="S" & is.na(CPD) ~ "S",
+                           TRUE ~ CPD))
+  
+  CRO_summary <- data.frame(rbind(
+    `Haemophilus influenzae_Ceftriaxone`,
+    `Moraxella catarrhalis_Ceftriaxone`,
+    `Neisseria meningitidis_Ceftriaxone`
+  ))
+  
+  CROdf <- data.frame(rbind(
+    `Haemophilus influenzae_Ceftriaxone_df`,
+    `Moraxella catarrhalis_Ceftriaxone_df`,
+    `Neisseria meningitidis_Ceftriaxone_df`
+  ))
+  
+  CROdf$org_name <- factor(CROdf$org_name, levels = CROdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  CRO_plot <- ggplot(CROdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = CROdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Ceftriaxone"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(CRO_plot)
+  
+  assign("CRO_summary",CRO_summary,envir = .GlobalEnv)
+  
+  df
+  
+}
+CIP_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  
+  df <- df %>%
+    res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
+    res_sim(org_fullname,"Moraxella catarrhalis",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
+    res_sim(org_fullname,"Neisseria meningitidis",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
+    mutate(LVX = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CIP=="S" & is.na(LVX) ~ "S",
+                           TRUE ~ LVX),
+           MFX = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CIP=="S" & is.na(MFX) ~ "S",
+                           TRUE ~ MFX),
+           NOR = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
+                                 org_fullname) &
+                             CIP=="S" & is.na(NOR) ~ "S",
+                           TRUE ~ NOR))
+  
+  CIP_summary <- data.frame(rbind(
+    `Haemophilus influenzae_Ciprofloxacin`,
+    `Moraxella catarrhalis_Ciprofloxacin`,
+    `Neisseria meningitidis_Ciprofloxacin`
+  ))
+  
+  CIPdf <- data.frame(rbind(
+    `Haemophilus influenzae_Ciprofloxacin_df`,
+    `Moraxella catarrhalis_Ciprofloxacin_df`,
+    `Neisseria meningitidis_Ciprofloxacin_df`
+  ))
+  
+  CIPdf$org_name <- factor(CIPdf$org_name, levels = CIPdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  CIP_plot <- ggplot(CIPdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = CIPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Ciprofloxacin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(CIP_plot)
+  
+  assign("CIP_summary",CIP_summary,envir = .GlobalEnv)
+  
+  df
+  
+}
+SPT_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Neisseria gonorrhoeae",org_fullname,"",SPT,1,1e4,"Spectinomycin")
+  
+  SPT_summary <- data.frame(rbind(
+    `Neisseria gonorrhoeae_Spectinomycin`
+  ))
+  
+  SPTdf <- data.frame(rbind(
+    `Neisseria gonorrhoeae_Spectinomycin_df`
+  ))
+  
+  SPTdf$org_name <- factor(SPTdf$org_name, levels = SPTdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  SPT_plot <- ggplot(SPTdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = SPTdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Ciprofloxacin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(SPT_plot)
+  
+  assign("SPT_summary",SPT_summary,envir = .GlobalEnv)
+  
+  df
+}
+VAN_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
+    res_sim(org_fullname,"Staphylococcus aureus",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
+    mutate(CNS = case_when(org_genus=="Staphylococcus" & org_fullname!="Staphylococcus aureus"~ "CNS",
+                           TRUE ~ "N")) %>% 
+    res_sim(CNS,"CNS",org_fullname,"",VAN,1,1e4,"Vancomycin") %>%
+    
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",VAN,1,1e4,"Vancomycin") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
+    mutate(TEC = case_when((grepl("Staphylococcus aureus|Corynebacterium|Streptococcus pneumoniae)",org_fullname) |
+                              grepl("BHS",BHS)) &
+                             VAN=="S" & is.na(TEC) ~ "S",
+                           TRUE ~ TEC),
+           DAL = case_when(VAN=="S" & is.na(DAL) ~ "S",
+                           TRUE ~ DAL),
+           TLV = case_when(VAN=="S" & is.na(CAZ) ~ "S",
+                           TRUE ~ TLV),
+           ORI = case_when(VAN=="S" & is.na(CZA) ~ "S",
+                           TRUE ~ ORI)) %>% 
+    select(-CNS,-BHS)
+  
+  
+  
+  VAN_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Vancomycin`,
+    `Staphylococcus aureus_Vancomycin`,
+    `CNS_Vancomycin`,
+    `BHS_Vancomycin`,
+    `Corynebacterium_Vancomycin`
+  ))
+  
+  VANdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Vancomycin_df`,
+    `Staphylococcus aureus_Vancomycin_df`,
+    `CNS_Vancomycin_df`,
+    `BHS_Vancomycin_df`,
+    `Corynebacterium_Vancomycin_df`
+  ))
+  
+  VANdf$org_name <- factor(VANdf$org_name, levels = VANdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  VAN_plot <- ggplot(VANdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = VANdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Vancomycin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(VAN_plot)
+  
+  assign("VAN_summary",VAN_summary,envir = .GlobalEnv)
+  
+  df
+}
+DAP_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",DAP,1,1e4,"Daptomycin") %>% 
+    res_sim(org_fullname,"Staphylococcus",org_fullname,"",DAP,1,1e4,"Daptomycin") %>% 
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",DAP,1,1e4,"Daptomycin") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",DAP,1,1e4,"Daptomycin") %>% 
+    select(-BHS) %>% 
+    res_sim(org_fullname,"Enterococcus",org_fullname,"",DAP,1,100,"Daptomycin")
+  
+  DAP_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Daptomycin`,
+    `Staphylococcus_Daptomycin`,
+    `BHS_Daptomycin`,
+    `Corynebacterium_Daptomycin`,
+    `Enterococcus_Daptomycin`
+  ))
+  
+  DAPdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Daptomycin_df`,
+    `Staphylococcus_Daptomycin_df`,
+    `BHS_Daptomycin_df`,
+    `Corynebacterium_Daptomycin_df`,
+    `Enterococcus_Daptomycin_df`
+  ))
+  
+  DAPdf$org_name <- factor(DAPdf$org_name, levels = DAPdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  DAP_plot <- ggplot(DAPdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = DAPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Daptomycin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(DAP_plot)
+  
+  assign("DAP_summary",DAP_summary,envir = .GlobalEnv)
+  
+  df
+}
+LNZ_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",LNZ,1,1e4,"Linezolid") %>% 
+    res_sim(org_fullname,"Staphylococcus",org_fullname,"",LNZ,1,1e4,"Linezolid") %>% 
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",LNZ,1,1e4,"Linezolid") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",LNZ,1,1e4,"Linezolid") %>% 
+    select(-BHS) %>% 
+    res_sim(org_fullname,"Enterococcus",org_fullname,"",LNZ,1,1e4,"Linezolid")
+  
+  LNZ_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Linezolid`,
+    `Staphylococcus_Linezolid`,
+    `BHS_Linezolid`,
+    `Corynebacterium_Linezolid`,
+    `Enterococcus_Linezolid`
+  ))
+  
+  LNZdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Linezolid_df`,
+    `Staphylococcus_Linezolid_df`,
+    `BHS_Linezolid_df`,
+    `Corynebacterium_Linezolid_df`,
+    `Enterococcus_Linezolid_df`
+  ))
+  
+  LNZdf$org_name <- factor(LNZdf$org_name, levels = LNZdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  LNZ_plot <- ggplot(LNZdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = LNZdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Linezolid"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(LNZ_plot)
+  
+  assign("LNZ_summary",LNZ_summary,envir = .GlobalEnv)
+  
+  df
+}
+PEN_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",PEN,1,1e4,"Benzylpenicillin") %>%
+    mutate(OXA = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ OXA),
+           AMP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ AMP),
+           AMX = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ AMX),
+           PIP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ PIP),
+           TIC = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ TIC),
+           CRB = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CRB),
+           SAM = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ SAM),
+           AMC = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ AMC),
+           TZP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ TZP),
+           LEX = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ LEX),
+           CZO = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CZO),
+           CEC = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CEC),
+           CXM = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CXM),
+           FOX1 = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                            TRUE ~ FOX1),
+           CTX = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CTX),
+           CRO = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CRO),
+           CPD = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CPD),
+           FEP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ FEP),
+           CPT = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ CPT),
+           BPR = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ BPR),
+           ETP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ ETP),
+           MEM = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ MEM),
+           IPM = case_when(BHS=="BHS" & PEN=="S" ~ "S",
+                           TRUE ~ IPM)
+    ) %>% 
+    select(-BHS)
+  
+  PEN_summary <- data.frame(rbind(
+    `BHS_Benzylpenicillin`
+  ))
+  
+  PENdf <- data.frame(rbind(
+    `BHS_Benzylpenicillin_df`
+  ))
+  
+  PENdf$org_name <- factor(PENdf$org_name, levels = PENdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  PEN_plot <- ggplot(PENdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = PENdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Benzylpenicillin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(PEN_plot)
+  
+  assign("PEN_summary",PEN_summary,envir = .GlobalEnv)
+  
+  df
+}
+AMP_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Enterococcus faecalis",org_fullname,"",AMP,1,1000,"Ampicillin")
+  
+  AMP_summary <- data.frame(rbind(
+    `Enterococcus faecalis_Ampicillin`
+  ))
+  
+  AMPdf <- data.frame(rbind(
+    `Enterococcus faecalis_Ampicillin_df`
+  ))
+  
+  AMPdf$org_name <- factor(AMPdf$org_name, levels = AMPdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  AMP_plot <- ggplot(AMPdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = AMPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Ampicillin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(AMP_plot)
+  
+  assign("AMP_summary",AMP_summary,envir = .GlobalEnv)
+  
+  df
+}
+TEC_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    mutate(CNS = case_when(org_genus=="Staphylococcus" & org_fullname!="Staphylococcus aureus"~ "CNS",
+                           TRUE ~ "N")) %>% 
+    res_sim(CNS,"CNS",org_fullname,"",TEC,1,1e4,"Teicoplanin") %>%
+    
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",TEC,1,1e4,"Teicoplanin") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",TEC,1,1e4,"Teicoplanin") %>% 
+    select(-CNS,-BHS)
+  
+  
+  
+  TEC_summary <- data.frame(rbind(
+    `CNS_Teicoplanin`,
+    `BHS_Teicoplanin`,
+    `Corynebacterium_Teicoplanin`
+  ))
+  
+  TECdf <- data.frame(rbind(
+    `CNS_Teicoplanin_df`,
+    `BHS_Teicoplanin_df`,
+    `Corynebacterium_Teicoplanin_df`
+  ))
+  
+  TECdf$org_name <- factor(TECdf$org_name, levels = TECdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  TEC_plot <- ggplot(TECdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = TECdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Teicoplanin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(TEC_plot)
+  
+  assign("TEC_summary",TEC_summary,envir = .GlobalEnv)
+  
+  df
+}
+RIF_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",RIF,1,1e4,"Rifampicin")
+  
+  RIF_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Rifampicin`
+  ))
+  
+  RIFdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Rifampicin_df`
+  ))
+  
+  RIFdf$org_name <- factor(RIFdf$org_name, levels = RIFdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  RIF_plot <- ggplot(RIFdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = RIFdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for RIFtamicin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(leRIFd.position = "none") 
+  
+  print(RIF_plot)
+  
+  assign("RIF_summary",RIF_summary,envir = .GlobalEnv)
+  
+  df
+}
+TGC_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",TGC,1,1e4,"Tigecycline") %>% 
+    res_sim(org_fullname,"Staphylococcus",org_fullname,"",TGC,1,1e4,"Tigecycline") %>% 
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",TGC,1,1e4,"Tigecycline") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",TGC,1,1e4,"Tigecycline") %>% 
+    select(-BHS) %>% 
+    res_sim(org_fullname,"Enterococcus",org_fullname,"",TGC,1,1000,"Tigecycline")
+  
+  TGC_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Tigecycline`,
+    `Staphylococcus_Tigecycline`,
+    `BHS_Tigecycline`,
+    `Corynebacterium_Tigecycline`,
+    `Enterococcus_Tigecycline`
+  ))
+  
+  TGCdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Tigecycline_df`,
+    `Staphylococcus_Tigecycline_df`,
+    `BHS_Tigecycline_df`,
+    `Corynebacterium_Tigecycline_df`,
+    `Enterococcus_Tigecycline_df`
+  ))
+  
+  TGCdf$org_name <- factor(TGCdf$org_name, levels = TGCdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  TGC_plot <- ggplot(TGCdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = TGCdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Tigecycline"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(TGC_plot)
+  
+  assign("TGC_summary",TGC_summary,envir = .GlobalEnv)
+  
+  df
+}
+QDA_simul <- function(df) {
+  
+  par(mfrow = c(1,1))
+  
+  df <- df %>%
+    res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>% 
+    res_sim(org_fullname,"Staphylococcus",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>% 
+    mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
+                           TRUE ~ "N")) %>%
+    res_sim(BHS,"BHS",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>%
+    res_sim(org_fullname,"Corynebacterium",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>% 
+    select(-BHS)
+  
+  QDA_summary <- data.frame(rbind(
+    `Streptococcus pneumoniae_Quinupristin-dalfopristin`,
+    `Staphylococcus_Quinupristin-dalfopristin`,
+    `BHS_Quinupristin-dalfopristin`,
+    `Corynebacterium_Quinupristin-dalfopristin`
+  ))
+  
+  QDAdf <- data.frame(rbind(
+    `Streptococcus pneumoniae_Quinupristin-dalfopristin_df`,
+    `Staphylococcus_Quinupristin-dalfopristin_df`,
+    `BHS_Quinupristin-dalfopristin_df`,
+    `Corynebacterium_Quinupristin-dalfopristin_df`
+  ))
+  
+  QDAdf$org_name <- factor(QDAdf$org_name, levels = QDAdf %>%
+                             distinct(org_name) %>% unlist()) %>% 
+    fct_rev()
+  
+  QDA_plot <- ggplot(QDAdf, aes(x=org_name,y=samples,fill=org_name))+
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(data = QDAdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
+    coord_flip() +
+    ggtitle(glue("Posterior Resistance Probability for Quinupristin-dalfopristin"))+
+    xlab("Organism Species/Group") +
+    ylab("Probability") +
+    ylim(0,1) +
+    theme_classic() +
+    theme(legend.position = "none") 
+  
+  print(QDA_plot)
+  
+  assign("QDA_summary",QDA_summary,envir = .GlobalEnv)
+  
+  df
+}
 
 #I to R reassignment for sensitivity analysis
 
@@ -2302,7 +3023,7 @@ pos_urines <- pos_urines %>%
 labitems %>% filter(grepl("White",label))
 wcc <- labevents %>% filter(itemid=="51301")
 wcc <- wcc %>% filter(!is.na(valuenum)) %>% rename(admittime="charttime")
-write_csv("wcc.csv")
+write_csv(wcc,"wcc.csv")
 pos_urines <- pos_urines %>% 
   prev_event_type_assign(abnormalWCC,wcc,flag,"abnormal",1,1) %>%
   ungroup()
