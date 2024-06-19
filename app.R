@@ -347,12 +347,11 @@ server <- function(input, output) {
       incProgress(1/55, detail = paste("loading Python packages and functions"))
       
       #LOAD PYTHON PACKAGES AND HEALTHCARE DATASETS
-      
       setwd("#FILEPATH#")
       path_to_data <- "#FILEPATH#"
       
-      reticulate::use_condaenv("#CONDAENV_FILEPATH#")
-      reticulate::source_python("#FILEPATH#/Imports & functions.py")
+      reticulate::use_condaenv("CPE")
+      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Imports & functions.py")
       
       incProgress(1/55, detail = paste("linking microbiology EHR"))
       incProgress(1/55, detail = paste("linking prescribing EHR"))
@@ -979,7 +978,7 @@ server <- function(input, output) {
       write_csv(daily_urines,"daily_urines.csv")
       
       #run python module
-      reticulate::source_python("#FILEPATH#/Prediction_run.py")
+      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Prediction_run.py")
       
       updateSelectInput(inputId = "specimen_id",choices=urines_to_test %>%
                           select(micro_specimen_id) %>% arrange(micro_specimen_id))
@@ -1040,6 +1039,8 @@ server <- function(input, output) {
   session_panels_final <- reactiveVal(NULL)
   
   panel_recs_final <- reactiveVal(NULL)
+  
+  pan_nam <- reactiveVal(NULL)
   
   observeEvent(input$button2, {
     
@@ -1141,15 +1142,40 @@ server <- function(input, output) {
       
       num(num_res)
       
+      print(panel_clusters)
+      
+      print(panel_vector)
+      
+      print(panel_recs)
+      
+      print(labels(panel_dend))
+      
+      
+      orderdend <- panel_vector[labels(panel_dend)]
+      orderd <- orderdend %>% unique()
+      orderkey <- tibble(order = c(1:length(orderd)), key = orderd)
+      print(orderkey)
+      
+      gcv <- function(input, tibble) {
+        tibble %>%
+          filter(key == input) %>%
+          select(order) %>%
+          pull()
+      }
+      
       par(mar=c(1,1,1,7))
+      
       panel_dend %>%
         set("labels_col", k=panel_number()) %>%
         set("labels_cex",0.5) %>% 
         set("branches_k_color", k = panel_number()) %>%
         plot(horiz=TRUE, axes=FALSE)
       abline(v = 350, lty = 2)
-      rect.dendrogram( panel_dend, k=panel_number(), lty = 5, lwd = 0, which=as.numeric(num()), col=rgb(0.1, 0.2, 0.4, 0.1),horiz=T ) 
+      rect.dendrogram( panel_dend, k=panel_number(),lty = 5, 
+                       lwd = 0, which=gcv(as.numeric(num()),orderkey), 
+                       col=rgb(0.1, 0.2, 0.4, 0.1),horiz=T ) 
       title(main=glue("Testing panel {num()}"),cex.main=1.5)
+      
       
     }
     
