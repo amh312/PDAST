@@ -11,7 +11,6 @@ ab_full = ['Ampicillin','Ampicillin-sulbactam','Piperacillin-tazobactam','Cefazo
 to_drop = ["subject_id","micro_specimen_id"]
 metrics_fairness = ['Accuracy','TPR','FPR','FNR','PPP']
 
-
 ###Preprocessing
 ref_df = pd.read_csv("urines5b.csv")
 ref_df['standard_age'] = ref_df['standard_age'].map(str)
@@ -27,16 +26,18 @@ overallfairF = {}
 vari_set = {}
 intercept_set = {}
 coef_set = {}
+aucrocs = {}
 
 ##Main model development, fairness analysis, and stability analysis
 
-for antimicrobial in list(range(0, 13, 1)):
+for antimicrobial in list(range(0, len(drops), 1)):
 
     ###Training, hyperparameter tuning, and validation
     train_test_validate_main(csv="urines5.csv",
                              abx=drops[antimicrobial],
                              antibiotic=ab_full[antimicrobial],
                              ab=lc_abs[antimicrobial])
+    aucrocs[drops[antimicrobial]] = roc_auc
 
     ###Fairness analysis
     iterate_mod_fairness(df=urines5,
@@ -51,11 +52,10 @@ for antimicrobial in list(range(0, 13, 1)):
                    Antimicrobial_agent=ab_full[antimicrobial],
                    abx=lc_abs[antimicrobial])
 
-
 ##Compiling and exporting results
 
 ###Main analysis coefficients
-for antimicrobial in list(range(0, 13, 1)):
+for antimicrobial in list(range(0, len(drops), 1)):
 
     with open(lc_abs[antimicrobial]+"file.pickle", 'rb') as f:
         vari_list = pickle.load(f)
@@ -68,12 +68,10 @@ for antimicrobial in list(range(0, 13, 1)):
 
 ###Main analysis performance metrics
 metrics_df = result_compiler(class_reps,"main_analysis_metrics.csv")
+aucrocs_df = pd.DataFrame(list(aucrocs.items()), columns=['Antimicrobial', 'AUC_ROC'])
+aucrocs_df['Information'] = 'Default'
+aucrocs_df.to_csv("default_aucrocs.csv", index=False)
 
 ###Fairness analysis
 fairness_true_metrics = compile_fairness_results(overallfairT,"T_fairness_metrics.csv")
 fairness_false_metrics = compile_fairness_results(overallfairF,"F_fairness_metrics.csv")
-
-
-
-
-
