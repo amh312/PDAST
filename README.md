@@ -16,34 +16,41 @@ PhysioNet MIMIC-IV citations:
 
 This code was written and run using *R* version 4.3.2 and *Python* version 3.12.0, on a laptop computer running macOS Sonoma version 14.5 with an Apple M1 Pro processor, 16GB random-access memory and 10 cores. The code may need to be run in chunks, depending on application memory. The typical run time of all code was approximately 3-4 hours.
 
-Before running the code, the data and *Python* files should be saved into a secure local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_2.R**, **PDAST_2B.R**, and **app.R** scripts.
+Before running the code, the data and *Python* files should be saved into a secure local directory - the filepath of this directory should then be substituted into the file in place of **#FILEPATH#** in all R scripts before running the code. The required package versions are included in the *packages.csv* file within this directory. A conda environment was used to run the *Reticulate* interface package - the local environment used should be substituted for **#CONDAENV_FILEPATH#** in the **PDAST_microsimulation.R**, **PDAST_microsimulation.R**, and **app.R** scripts.
 
 ***Reproducing the study***
 
-1. To reproduce the study, the **PDAST_1.R** script and the **Imports & functions.py** script must be run first.
+1. To reproduce the study, the following scripts must be run first:
+   a. **PDAST_cleaning.R**
+   b. **PDAST_feature_engineering**
+   c. **PDAST_preprocessing**
+   d. **Imports & functions.py**
 
 Then, for the subsequent analyses:
 
-To reproduce the main analysis, fairness analysis, and stability analysis: 
-2. Run **UDAST_LR.py**; 
-3. Run **PDAST_2.R***
+To reproduce the main model validation, microsimulation study, fairness analysis, and stability analysis: 
+2. Run **UDAST_train_test_main.py**; 
+3. Run **PDAST_microsimulation.R***
+4. Run **PDAST_stability.R**
 
-To reproduce the analysis where organism identification is available: 
-2. Run **UDAST_LR2.py**
-
-To reproduce the analysis where other AST results are also available: 
-2. Run **UDAST_LR3.py**
+To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available: 
+2. Run **UDAST_train_test_org_id.py**
+3. Run **UDAST_train_test_AST.py**
 
 To reproduce the analysis where all 'I' results are reclassified as 'R': 
-2. Run **UDAST_LR4.py**; 
-3. Run **PDAST_2B.R***
+2. Run **UDAST_train_test_I-R.py**
+3. Run **PDAST_microsim_I_sensitivity.R***
 
-To reproduce the multinomial analysis: 
-2. Run **UDAST_LR5.py**
+To reproduce the multinomial model validation sensitivity analysis: 
+2. Run **UDAST_train_test_multinomial.py**
+
+To reproduce the out-of-sample time cross validation sensitivity analysis:
+2. Run **PDAST_microsimulation.R***
+
+To reproduce the specimen result clinical contextual analysis:
+2. Run **PDAST_contextual_analysis.R**
 
 To run the prototype application: 
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.
 
-Please be aware that randomisation processes are used several times throughout the code - results may therefore vary slightly from those presented in the manuscript.
-
-*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running **PDAST_2C.R** (instead of running **PDAST_2.R** or **PDAST_2B.R**), running the **Prediction_run.py** file in *Python*, then running **PDAST_3.R**. Remember to substitute in your local directory filepath in place of #FILEPATH#.
+*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running the **PDAST_microsimulation.R*** code up to the point that reticulate is used, running the **Prediction_run.py** file in *Python*, then running the remainder of **PDAST_microsimulation.R***. Remember to substitute in your local directory filepath in place of #FILEPATH#.
