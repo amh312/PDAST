@@ -1,5 +1,7 @@
 #ADAPT-AST USER INTERFACE
 
+##Packages
+
 library(shiny)
 library("tidyverse")
 library("DescTools")
@@ -15,38 +17,38 @@ library("sna")
 library("dendextend")
 library("TSP")
 
-micro <- read_csv("micro_clean2.csv")
-drugs <- read_csv("drugs_clean.csv")
-pats <- read_csv("patients.csv")
-hadm <- read_csv("admissions.csv")
-diagnoses <- read_csv("diagnoses_clean.csv")
-procedures <- read_csv("procedures_clean.csv")
-crp <- read_csv("crp.csv")
-wcc <- read_csv("wcc.csv")
-poe <- read_csv("poe_clean.csv")
-omr <- read_csv("omr.csv")
-services <- read_csv("services.csv")
+##Dataset load-in
 
-urines_aware <- read_csv("urines_assess.csv")
-session_urines <- readr::read_csv("microbiologyevents.csv")
+micro <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/micro_clean2.csv")
+drugs <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/drugs_clean.csv")
+pats <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/patients.csv")
+hadm <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/admissions.csv")
+diagnoses <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/diagnoses_clean.csv")
+procedures <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/procedures_clean.csv")
+crp <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/crp.csv")
+wcc <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/wcc.csv")
+poe <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/poe_clean.csv")
+omr <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/omr.csv")
+services <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/services.csv")
+
+urines_aware <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/urines_assess.csv")
+session_urines <- readr::read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/microbiologyevents.csv")
 session_urines <- semi_join(session_urines,urines_aware,by="micro_specimen_id")
 session_urines <- session_urines %>% filter(test_name=="URINE CULTURE") %>% 
   filter(!is.na(org_name))
+
+##Sample dataset for demonstration
 
 row_start <- sample(nrow(session_urines),1)
 row_end <- row_start + 100
 session_urines <- session_urines %>% filter(!is.na(charttime)) %>% 
   arrange(micro_specimen_id) %>% 
   slice(row_start:row_end) %>% distinct(subject_id,micro_specimen_id,charttime,.keep_all =T)
-write_csv(session_urines,"session_urines.csv")
+write_csv(session_urines,"/Users/alexhoward/Documents/Projects/UDAST_code/session_urines.csv")
 
-#FUNCTIONS
+##Functions
 
-
-############### READ-in
-
-############### Age
-
+###Assigning age variable
 age_assign <- function(df,B_var,age_df,age_cutoff) {
   
   age_df %>%
@@ -60,8 +62,7 @@ age_assign <- function(df,B_var,age_df,age_cutoff) {
   
 }
 
-############## Gender
-
+###Assigning 'gender' variable
 gender_assign <- function(df,B_var,gender_df) {
   
   gender_df %>%
@@ -73,8 +74,7 @@ gender_assign <- function(df,B_var,gender_df) {
   
 }
 
-################ PREVIOUS EVENT
-
+###Generic previous event assignment
 prev_event_assign <- function(df,B_var,event_df,event_var,no_days,no_events) {
   
   df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
@@ -99,8 +99,7 @@ prev_event_assign <- function(df,B_var,event_df,event_var,no_days,no_events) {
   
 }
 
-################## PREVIOUS EVENT TYPE
-
+###Generic previous event type assignment
 prev_event_type_assign <- function(df,B_var,event_df,event_var,event_type,no_days,no_events) {
   
   df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
@@ -126,8 +125,7 @@ prev_event_type_assign <- function(df,B_var,event_df,event_var,event_type,no_day
   
 }
 
-################ PREVIOUS ANTIMICROBIAL TREATMENT
-
+###Previous antimicrobial treatment assigment
 prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_events) {
   
   ur_df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
@@ -153,61 +151,7 @@ prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_even
   
 }
 
-################ UNCERTAINTY PRIORITISER
-
-R_unc_prioritiser = function(df,spec_id,panel_size) {
-  
-  df %>% filter(micro_specimen_id==spec_id) %>%
-    arrange(abs(0.5-R)) %>% select(Antimicrobial,R) %>% 
-    mutate(R = round(R*100,1)) %>% slice(1:panel_size) %>% 
-    rename(`Recommended tests` = "Antimicrobial",`% prob R` = "R")
-  
-}
-
-aware_prioritiser = function(df,spec_id,panel_size,acs_weight=1,war_weight=1) {
-  df %>% filter(micro_specimen_id==spec_id) %>%
-    mutate(aware_utility = case_when(
-      as.ab(Antimicrobial)=="AMP" ~ (S+I) * acs_weight,
-      as.ab(Antimicrobial)=="SAM" ~ (S+I) * acs_weight,
-      as.ab(Antimicrobial)=="TZP" ~ R * war_weight,
-      as.ab(Antimicrobial)=="CZO" ~ (S+I) * acs_weight,
-      as.ab(Antimicrobial)=="CRO" ~ R * war_weight,
-      as.ab(Antimicrobial)=="CAZ" ~ R * war_weight,
-      as.ab(Antimicrobial)=="FEP" ~ R * war_weight,
-      as.ab(Antimicrobial)=="MEM" ~ R * war_weight,
-      as.ab(Antimicrobial)=="CIP" ~ R * war_weight,
-      as.ab(Antimicrobial)=="GEN" ~ (S+I) * acs_weight,
-      as.ab(Antimicrobial)=="SXT" ~ (S+I) * acs_weight,
-      as.ab(Antimicrobial)=="NIT" ~ (S+I) * acs_weight
-    )) %>% 
-    arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
-    mutate(aware_utility = round(aware_utility*100,1)) %>% slice(1:panel_size) %>% 
-    rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
-  
-}
-
-aware_mk3 = function(df,spec_id,panel_size,acs_cutoff=0.5) {
-  df %>% filter(micro_specimen_id==spec_id) %>%
-    mutate(aware_utility = case_when(
-      as.ab(Antimicrobial)=="AMP" & (S+I) > acs_cutoff ~ 1+S+I,
-      as.ab(Antimicrobial)=="SAM" & (S+I) > acs_cutoff ~ 1+S+I,
-      as.ab(Antimicrobial)=="TZP" ~ (S+I),
-      as.ab(Antimicrobial)=="CZO" & (S+I) > acs_cutoff ~ 1+S+I,
-      as.ab(Antimicrobial)=="CRO" ~(S+I),
-      as.ab(Antimicrobial)=="CAZ" ~(S+I),
-      as.ab(Antimicrobial)=="FEP" ~(S+I),
-      as.ab(Antimicrobial)=="MEM" ~(S+I),
-      as.ab(Antimicrobial)=="CIP" ~(S+I),
-      as.ab(Antimicrobial)=="GEN" & (S+I) > acs_cutoff ~ 1+S+I,
-      as.ab(Antimicrobial)=="SXT" & (S+I) > acs_cutoff ~ 1+S+I,
-      as.ab(Antimicrobial)=="NIT" & (S+I) > acs_cutoff ~ 1+S+I,
-      TRUE ~ 0)) %>% 
-    arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
-    mutate(aware_utility = round(aware_utility*100,1)) %>% slice(1:panel_size) %>% 
-    rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
-  
-}
-
+###Generic previous event assignment function
 aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
   df %>% filter(micro_specimen_id==spec_id) %>%
     mutate(aware_utility = case_when(
@@ -230,8 +174,7 @@ aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
   
 }
 
-################ PROBABILITY PLOT
-
+###Probability plot
 plot_probs <- function(df,chosen_test_df,spec_id) {
   
   plot_df <- chosen_test_df %>% rename(Antimicrobial="Recommended tests") %>%
@@ -261,39 +204,29 @@ plot_probs <- function(df,chosen_test_df,spec_id) {
   
 }
 
-
-# Define UI
+## Define user interface
 ui <- fluidPage(
   
+  ###Application title
+  titlePanel(title=span(img(src="AAST-logo.png",width=200,height=60))),
   
-  # Sidebar with a slider input for number of bins 
+  ###Sidebar
   sidebarLayout(
     sidebarPanel(
-      
       fileInput("file","Input booked specimens"),
-      
       selectInput("specimen_id","Select specimen number",
                   choices=NULL, selected=NULL),
-      
       checkboxInput("checkbox","Efficiency-optimised ordering"),
-      
       sliderInput("panel_size","Select testing panel size",
                   value=1,step=1,min=1,max=1),
-      
       sliderInput("n_panels","Select number of panels",
                   value=1,step=1,min=1,max=1),
-      
       actionButton("button","Recommend tests"),
-      
       actionButton("button2","Recommend panels"),
-      
       tableOutput('selected_abx')
-      
-      
-      
     ),
     
-    # Main Panel display
+    ###Main panel
     mainPanel(
       fluidRow(
         splitLayout(cellWidths = c("50%", "50%"), plotOutput("prob_plot"), plotOutput("panels_plot"))),
@@ -307,13 +240,12 @@ ui <- fluidPage(
             font-style: bold;
             }")),
       tableOutput("selected_panels")
-      
     )
   )
 )
 
 
-# DEFINE SERVER LOGIC
+##Server logic
 
 server <- function(input, output) {
   
@@ -333,40 +265,19 @@ server <- function(input, output) {
     
     withProgress(message = "Please wait...", {
       
-      
+      ###Import urine testing session data
       incProgress(1/55, detail = paste("importing urine data"))
-      
       urines_to_test <- read.csv(input$file$datapath)
       
+      ###Set working directory
+      setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
+      path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
       
-      incProgress(1/55, detail = paste("loading R packages and functions"))
-      
-      #PACKAGES AND WD
-      
-      
-      incProgress(1/55, detail = paste("loading Python packages and functions"))
-      
-      #LOAD PYTHON PACKAGES AND HEALTHCARE DATASETS
-      setwd("#FILEPATH#")
-      path_to_data <- "#FILEPATH#"
-      
+      ###Load Python packages
       reticulate::use_condaenv("CPE")
       reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Imports & functions.py")
       
-      incProgress(1/55, detail = paste("linking microbiology EHR"))
-      incProgress(1/55, detail = paste("linking prescribing EHR"))
-      incProgress(1/55, detail = paste("linking patient EHR"))
-      incProgress(1/55, detail = paste("linking admission EHR"))
-      incProgress(1/55, detail = paste("linking diagnostic coding EHR"))
-      incProgress(1/55, detail = paste("linking procedure coding EHR"))
-      incProgress(1/55, detail = paste("linking biochemistry EHR"))
-      incProgress(1/55, detail = paste("linking haematology EHR"))
-      incProgress(1/55, detail = paste("linking care episode EHR"))
-      incProgress(1/55, detail = paste("linking observations EHR"))
-      incProgress(1/55, detail = paste("linking service EHR"))
-      
-      #FILTER DATASETS TO ONLY RESULTS FOR PATIENTS WITH POSITIVE URINES (not obs and pats)
-      
+      ###Filter datasets to match urine testing session patients
       obs <- poe %>% filter(order_subtype=="Vitals/Monitoring")
       micro <- micro %>% semi_join(urines_to_test, by="subject_id")
       drugs <- drugs %>% semi_join(urines_to_test, by="subject_id")
@@ -379,12 +290,11 @@ server <- function(input, output) {
       omr <- omr %>% semi_join(urines_to_test, by="subject_id")
       services <- services %>% semi_join(urines_to_test, by="subject_id")
       
-      #PREVIOUS ANTIMICROBIAL RESISTANCE VARIABLES (IN DATASET)
+      ##Feature engineering
       
+      ###Check for previous antimicrobial resistance
       incProgress(1/55, detail = paste("checking for previous resistance"))
-      
       micro3 <- micro %>% rename(admittime = "charttime")
-      
       urines_to_test <- urines_to_test %>%
         prev_event_type_assign(pAMPr,micro3,AMP,"R",365,1) %>% 
         prev_event_type_assign(pSAMr,micro3,SAM,"R",365,1) %>% 
@@ -408,10 +318,8 @@ server <- function(input, output) {
         prev_event_type_assign(pTOBr,micro3,TOB,"R",365,1) %>%
         ungroup()
       
-      #PREVIOUS ANTIMICROBIAL SUSCEPTIBILITY VARIABLES
-      
+      ###Check for previous antimicrobial susceptibility
       incProgress(1/55, detail = paste("checking for previous susceptibility"))
-      
       urines_to_test <- urines_to_test %>%
         prev_event_type_assign(pAMPs,micro3,AMP,"S",365,1) %>% 
         prev_event_type_assign(pSAMs,micro3,SAM,"S",365,1) %>% 
@@ -435,10 +343,8 @@ server <- function(input, output) {
         prev_event_type_assign(pTOBs,micro3,TOB,"S",365,1) %>%
         ungroup()
       
-      #PREVIOUS ANTIMICROBIAL INTERMEDIATE VARIABLES
-      
+      ###Check for previous 'I' results
       incProgress(1/55, detail = paste("checking for previous 'I'"))
-      
       urines_to_test <- urines_to_test %>%
         prev_event_type_assign(pAMPi,micro3,AMP,"I",365,1) %>% 
         prev_event_type_assign(pSAMi,micro3,SAM,"I",365,1) %>% 
@@ -462,10 +368,8 @@ server <- function(input, output) {
         prev_event_type_assign(pTOBi,micro3,TOB,"I",365,1) %>%
         ungroup()
       
-      #PREVIOUS ANTIMICROBIAL NOT TESTED VARIABLES
-      
+      ###Check for previous isolates not tested for specified antimicrobial agents
       incProgress(1/55, detail = paste("checking for previous 'untested'"))
-      
       micaborgs <- micro %>% filter(!is.na(org_name))
       micabnas <- micro %>% filter(is.na(org_name))
       micaborgab <- micaborgs %>% select(PEN:MTR)
@@ -473,7 +377,6 @@ server <- function(input, output) {
       micaborgs[,17:81] <- micaborgab
       micro2 <- tibble(rbind(micaborgs,micabnas))
       micro2 <- micro2 %>% rename(admittime = "charttime")
-      
       urines_to_test <- urines_to_test %>%
         prev_event_type_assign(pAMPnt,micro2,AMP,"NT",365,1) %>% 
         prev_event_type_assign(pSAMnt,micro2,SAM,"NT",365,1) %>% 
@@ -496,10 +399,8 @@ server <- function(input, output) {
         prev_event_type_assign(pTOBnt,micro2,TOB,"NT",365,1) %>%
         ungroup()
       
-      #PREVIOUS ANTIMICROBIAL TREATMENT VARIABLES (LAST YEAR)
-      
+      ###Check for previous antimicrobial treatment in the last year
       incProgress(1/55, detail = paste("checking for prescriptions in last year'"))
-      
       drugs <- drugs %>% rename(ab_name = "abx_name")
       urines_to_test <- urines_to_test %>%
         prev_rx_assign(pAMPrx,drugs,"Ampicillin",ab_name,365,1) %>% 
@@ -534,48 +435,10 @@ server <- function(input, output) {
         prev_rx_assign(pDAPrx,drugs,"Daptomycin",ab_name,365,1) %>%
         prev_rx_assign(pDOXrx,drugs,"Doxycycline",ab_name,365,1) %>%
         ungroup()
-      
       print("prev_rx")
       
-      #PREVIOUS HOSPITAL ADMISSION VARIABLE
-      
-      incProgress(1/55, detail = paste("checking for admisssions in last year'"))
-      
-      urines_to_test <- urines_to_test %>% 
-        prev_event_assign(pHADM,hadm,hadm_id,365,1) %>%
-        ungroup()
-      
-      print("prev_hadm")
-      
-      #PREVIOUS NURSING HOME RESIDENCY VARIABLE
-      
-      incProgress(1/55, detail = paste("checking for nursing home residency'"))
-      
-      urines_to_test <- urines_to_test %>% 
-        prev_event_type_assign(pNH,hadm,discharge_location,"NURSING",365,1) %>%
-        ungroup()
-      
-      #MALE GENDER VARIABLE
-      
-      incProgress(1/55, detail = paste("checking sex"))
-      
-      urines_to_test <- urines_to_test %>% 
-        gender_assign(MALE,pats)
-      
-      #STANDARDISED AGE VARIABLE - NB NEEDS TO BE APPLIED WITH SAME MEAN TO TRAIN AND TEST
-      
-      incProgress(1/55, detail = paste("checking age"))
-      
-      pats$standard_age <- standardize(pats$anchor_age)
-      pats <- pats %>% group_by(subject_id) %>% summarise(standard_age=base::mean(standard_age,na.rm=TRUE))
-      urines_to_test <- left_join(urines_to_test,pats,by="subject_id")
-      
-      print("age")
-      
-      #ON ANTIMICROBIAL IN THE WEEK BEFORE DATE OF TEST
-      
+      ###Check for antimicrobial treatment in the last week
       incProgress(1/55, detail = paste("checking for prescriptions in last week"))
-      
       urines_to_test <- urines_to_test %>%
         prev_rx_assign(d7AMPrx,drugs,"Ampicillin",ab_name,7,1) %>% 
         prev_rx_assign(d7AMXrx,drugs,"Amoxicillin",ab_name,7,1) %>% 
@@ -610,7 +473,32 @@ server <- function(input, output) {
         prev_rx_assign(d7DOXrx,drugs,"Doxycycline",ab_name,7,1) %>%
         ungroup()
       
-      #RACE VARIABLE
+      ###Check for previous hospital admission in the last year
+      incProgress(1/55, detail = paste("checking for admisssions in last year'"))
+      urines_to_test <- urines_to_test %>% 
+        prev_event_assign(pHADM,hadm,hadm_id,365,1) %>%
+        ungroup()
+      print("prev_hadm")
+      
+      ###Check for previous discharge to nursing home in the last year
+      incProgress(1/55, detail = paste("checking for nursing home residency'"))
+      urines_to_test <- urines_to_test %>% 
+        prev_event_type_assign(pNH,hadm,discharge_location,"NURSING",365,1) %>%
+        ungroup()
+      
+      ###Check for male 'gender'
+      incProgress(1/55, detail = paste("checking sex"))
+      urines_to_test <- urines_to_test %>% 
+        gender_assign(MALE,pats)
+      
+      ###Check for age
+      incProgress(1/55, detail = paste("checking age"))
+      pats$standard_age <- standardize(pats$anchor_age)
+      pats <- pats %>% group_by(subject_id) %>% summarise(standard_age=base::mean(standard_age,na.rm=TRUE))
+      urines_to_test <- left_join(urines_to_test,pats,by="subject_id")
+      print("age")
+      
+      ###Check for race
       incProgress(1/55, detail = paste("checking ethnicity"))
       hadm_race <- hadm %>%
         select(subject_id,race) %>%
@@ -619,10 +507,8 @@ server <- function(input, output) {
       urines_to_test <- urines_to_test %>% mutate(race=case_when(is.na(race) ~ "UNKNOWN",
                                                                  TRUE~race))
       
-      #MARITAL STATUS VARIABLE
-      
+      ###Check for marital status
       incProgress(1/55, detail = paste("checking marital status"))
-      
       hadm_marital <- hadm %>%
         select(subject_id,marital_status) %>%
         distinct(subject_id,.keep_all = T)
@@ -630,8 +516,7 @@ server <- function(input, output) {
       urines_to_test <- urines_to_test %>% mutate(marital_status=case_when(is.na(marital_status) ~ "UNKNOWN",
                                                                            TRUE~marital_status))
       
-      #INSURANCE VARIABLE
-      
+      ###Check for insurance type
       incProgress(1/55, detail = paste("checking insurance type"))
       
       hadm_insurance <- hadm %>%
@@ -641,10 +526,8 @@ server <- function(input, output) {
       urines_to_test <- urines_to_test %>% mutate(insurance=case_when(is.na(insurance) ~ "UNKNOWN",
                                                                       TRUE~insurance))
       
-      #LANGUAGE VARIABLE
-      
+      ###Check for English language speaking
       incProgress(1/55, detail = paste("checking language"))
-      
       hadm_language <- hadm %>%
         select(subject_id,language) %>%
         distinct(subject_id,.keep_all = T)
@@ -652,10 +535,8 @@ server <- function(input, output) {
       urines_to_test <- urines_to_test %>% mutate(language=case_when(is.na(language) ~ "UNKNOWN",
                                                                      TRUE~language))
       
-      #ADMISSION TYPE
-      
+      ###Check for admission type
       incProgress(1/55, detail = paste("checking admission type"))
-      
       hadm_admission <- hadm %>%
         select(hadm_id,admission_location) %>%
         mutate(admission_location=case_when(is.na(admission_location) ~ "OUTPATIENT",
@@ -668,43 +549,39 @@ server <- function(input, output) {
         mutate(admission_location=case_when(is.na(admission_location) ~ "OUTPATIENT",
                                             TRUE~admission_location))
       
-      #PREVIOUS DIAGNOSIS ICD CODES
-      
+      ###Check for previous diagnosis ICD codes
       incProgress(1/55, detail = paste("checking for previous diagnoses"))
-      
       urines_to_test <- urines_to_test %>% 
-        prev_event_type_assign(pPROC_A,diagnoses,icd_group,"A",365,1) %>% 
-        prev_event_type_assign(pPROC_B,diagnoses,icd_group,"B",365,1) %>%
-        prev_event_type_assign(pPROC_C,diagnoses,icd_group,"C",365,1) %>%
-        prev_event_type_assign(pPROC_D,diagnoses,icd_group,"D",365,1) %>%
-        prev_event_type_assign(pPROC_E,diagnoses,icd_group,"E",365,1) %>%
-        prev_event_type_assign(pPROC_F,diagnoses,icd_group,"F",365,1) %>%
-        prev_event_type_assign(pPROC_G,diagnoses,icd_group,"G",365,1) %>%
-        prev_event_type_assign(pPROC_H,diagnoses,icd_group,"H",365,1) %>%
-        prev_event_type_assign(pPROC_I,diagnoses,icd_group,"I",365,1) %>%
-        prev_event_type_assign(pPROC_J,diagnoses,icd_group,"J",365,1) %>%
-        prev_event_type_assign(pPROC_K,diagnoses,icd_group,"K",365,1) %>%
-        prev_event_type_assign(pPROC_L,diagnoses,icd_group,"L",365,1) %>%
-        prev_event_type_assign(pPROC_M,diagnoses,icd_group,"M",365,1) %>%
-        prev_event_type_assign(pPROC_N,diagnoses,icd_group,"N",365,1) %>%
-        prev_event_type_assign(pPROC_O,diagnoses,icd_group,"O",365,1) %>%
-        prev_event_type_assign(pPROC_P,diagnoses,icd_group,"P",365,1) %>%
-        prev_event_type_assign(pPROC_Q,diagnoses,icd_group,"Q",365,1) %>%
-        prev_event_type_assign(pPROC_R,diagnoses,icd_group,"R",365,1) %>%
-        prev_event_type_assign(pPROC_S,diagnoses,icd_group,"S",365,1) %>%
-        prev_event_type_assign(pPROC_T,diagnoses,icd_group,"T",365,1) %>%
-        prev_event_type_assign(pPROC_U,diagnoses,icd_group,"U",365,1) %>%
-        prev_event_type_assign(pPROC_V,diagnoses,icd_group,"V",365,1) %>%
-        prev_event_type_assign(pPROC_W,diagnoses,icd_group,"W",365,1) %>%
-        prev_event_type_assign(pPROC_X,diagnoses,icd_group,"X",365,1) %>%
-        prev_event_type_assign(pPROC_Y,diagnoses,icd_group,"Y",365,1) %>% 
-        prev_event_type_assign(pPROC_Z,diagnoses,icd_group,"Z",365,1) %>%
+        prev_event_type_assign(pDIAG_A,diagnoses,icd_group,"A",365,1) %>% 
+        prev_event_type_assign(pDIAG_B,diagnoses,icd_group,"B",365,1) %>%
+        prev_event_type_assign(pDIAG_C,diagnoses,icd_group,"C",365,1) %>%
+        prev_event_type_assign(pDIAG_D,diagnoses,icd_group,"D",365,1) %>%
+        prev_event_type_assign(pDIAG_E,diagnoses,icd_group,"E",365,1) %>%
+        prev_event_type_assign(pDIAG_F,diagnoses,icd_group,"F",365,1) %>%
+        prev_event_type_assign(pDIAG_G,diagnoses,icd_group,"G",365,1) %>%
+        prev_event_type_assign(pDIAG_H,diagnoses,icd_group,"H",365,1) %>%
+        prev_event_type_assign(pDIAG_I,diagnoses,icd_group,"I",365,1) %>%
+        prev_event_type_assign(pDIAG_J,diagnoses,icd_group,"J",365,1) %>%
+        prev_event_type_assign(pDIAG_K,diagnoses,icd_group,"K",365,1) %>%
+        prev_event_type_assign(pDIAG_L,diagnoses,icd_group,"L",365,1) %>%
+        prev_event_type_assign(pDIAG_M,diagnoses,icd_group,"M",365,1) %>%
+        prev_event_type_assign(pDIAG_N,diagnoses,icd_group,"N",365,1) %>%
+        prev_event_type_assign(pDIAG_O,diagnoses,icd_group,"O",365,1) %>%
+        prev_event_type_assign(pDIAG_P,diagnoses,icd_group,"P",365,1) %>%
+        prev_event_type_assign(pDIAG_Q,diagnoses,icd_group,"Q",365,1) %>%
+        prev_event_type_assign(pDIAG_R,diagnoses,icd_group,"R",365,1) %>%
+        prev_event_type_assign(pDIAG_S,diagnoses,icd_group,"S",365,1) %>%
+        prev_event_type_assign(pDIAG_T,diagnoses,icd_group,"T",365,1) %>%
+        prev_event_type_assign(pDIAG_U,diagnoses,icd_group,"U",365,1) %>%
+        prev_event_type_assign(pDIAG_V,diagnoses,icd_group,"V",365,1) %>%
+        prev_event_type_assign(pDIAG_W,diagnoses,icd_group,"W",365,1) %>%
+        prev_event_type_assign(pDIAG_X,diagnoses,icd_group,"X",365,1) %>%
+        prev_event_type_assign(pDIAG_Y,diagnoses,icd_group,"Y",365,1) %>% 
+        prev_event_type_assign(pDIAG_Z,diagnoses,icd_group,"Z",365,1) %>%
         ungroup()
       
-      #PREVIOUS PROCEDURES ICD CODES
-      
+      ###Check for previous procedure ICD codes
       incProgress(1/55, detail = paste("checking for previous procedures"))
-      
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pPROC_0,procedures,icd_group,"0",365,1) %>% 
         prev_event_type_assign(pPROC_3,procedures,icd_group,"3",365,1) %>%
@@ -739,144 +616,114 @@ server <- function(input, output) {
         prev_event_type_assign(pPROC_O,procedures,icd_group,"O",365,1) %>%
         ungroup()
       
-      #PRESENCE OF PROVIDER ID
-      
+      ###Check for the presence of an outpatient provider ID
       incProgress(1/55, detail = paste("checking for provider ID"))
-      
       urines_to_test <- urines_to_test %>% mutate(provider_id = case_when(order_provider_id!="" ~ TRUE,
                                                                           TRUE ~ FALSE))
       
-      #CURRENT SERVICE
-      
+      ###Check for current healthcare service provider
       incProgress(1/55, detail = paste("checking current service provider"))
-      
       serv_key <- services %>% select(hadm_id,curr_service) %>% distinct(hadm_id,.keep_all = T)
       urines_to_test <- urines_to_test %>% left_join(serv_key,by="hadm_id") %>% mutate(
         curr_service = case_when(is.na(curr_service) ~ "UNKNOWN",
                                  TRUE ~ curr_service))
       
-      #RECENT URINARY CATHETER (last 28 days)
-      
+      ###Check for urinary catheter insertion in the last 28 days
       incProgress(1/55, detail = paste("checking for recent urinary catheter"))
-      
       cath <- poe %>% filter(grepl("cath",field_value,ignore.case=T)) %>% mutate(
         field_value="Catheter") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pCATH,cath,field_value,"Catheter",28,1) %>%
         ungroup()
       
-      #RECENT DNR
-      
+      ###Check for 'do not resuscitate' order in the last year
       incProgress(1/55, detail = paste("checking for recent DNR"))
-      
       dnr <- poe %>% filter(grepl("DNR",field_value,ignore.case=T)) %>% mutate(
         field_value="DNR") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pDNR,dnr,field_value,"DNR",365,1) %>%
         ungroup()
       
-      #RECENT DISCHARGE (last 28 days)
-      
+      ###Check for discharge in the last 28 days
       incProgress(1/55, detail = paste("checking for recent discharge"))
-      
       disc <- poe %>% filter(grepl("Discharge",field_value,ignore.case=T)) %>% mutate(
         field_value="Discharge") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pDISC,disc,field_value,"Discharge",28,1) %>%
         ungroup()
       
-      #RECENT ICU ADMISSION (last 28 days)
-      
+      ###Check for intensive care admission in the last 28 days
       incProgress(1/55, detail = paste("checking for recent ICU admission"))
-      
       icu <- poe %>% filter(field_value=="ICU") %>% mutate(
         field_value="ICU") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pICU,icu,field_value,"ICU",28,1) %>%
         ungroup()
       
-      #RECENT PSYCHIATRY INPUT (last year)
-      
+      ###Check for psychiatry input in the last year
       incProgress(1/55, detail = paste("checking for previous psychiatry input"))
-      
       psych <- poe %>% filter(field_value=="Psychiatry") %>% mutate(
         field_value="Psychiatry") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pPsych,psych,field_value,"Psychiatry",365,1) %>%
         ungroup()
       
-      #RECENT NEPHROSTOMY (last year)
-      
+      ###Check for nephrostomy insertion in the last year
       incProgress(1/55, detail = paste("checking for previous nephrostomy"))
-      
       neph <- poe %>% filter(field_value=="Nephrostomy") %>% mutate(
         field_value="Nephrostomy") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pNeph,neph,field_value,"Nephrostomy",365,1) %>%
         ungroup()
       
-      #RECENT SURGERY (last 28 days)
-      
+      ###Check for surgery in the last year
       incProgress(1/55, detail = paste("checking for recent surgery"))
-      
       surg <- poe %>% filter(field_value=="Surgery") %>% mutate(
         field_value="Surgery") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pSurg,surg,field_value,"Surgery",365,1) %>%
         ungroup()
       
-      #RECENT HYDRATION (last 28 days)
-      
+      ###Check for hydration order in the last 28 days
       incProgress(1/55, detail = paste("checking for recent hydration requirement"))
-      
       hyd <- poe %>% filter(field_value=="Hydration") %>% mutate(
         field_value="Hydration") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pHyd,hyd,field_value,"Hydration",28,1) %>%
         ungroup()
       
-      #RECENT NG tube (last 28 days)
-      
+      ###Check for nasogastric tube insertion in the last 28 days
       incProgress(1/55, detail = paste("checking for recent NG tube"))
-      
       ngt <- poe %>% filter(field_value=="NGT") %>% mutate(
         field_value="NGT") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pNGT,ngt,field_value,"NGT",28,1) %>%
         ungroup()
       
-      #RECENT CHEMOTHERAPY (last 28 days)
-      
+      ###Check for chamotherapy for cancer in the last 28 days
       incProgress(1/55, detail = paste("checking for recent chemotherapy"))
-      
       chemo <- poe %>% filter(field_value=="Chemo") %>% mutate(
         field_value="Chemo") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pChemo,chemo,field_value,"Chemo",28,1) %>%
         ungroup()
       
-      #High CRP on day before/of test
-      
+      ###Check for high C-reactive protein on the day of the urine specimen
       incProgress(1/55, detail = paste("checking CRP"))
-      
       crp <- crp %>% filter(!is.na(valuenum))
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(highCRP,crp,flag,"abnormal",1,1) %>%
         ungroup()
       
-      #White cell count on day before/of test
-      
+      ###Check for abnormal peripheral white cell count on the day of the urine specimen
       incProgress(1/55, detail = paste("checking white cell count"))
-      
       wcc <- wcc %>% filter(!is.na(valuenum))
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(abnormalWCC,wcc,flag,"abnormal",1,1) %>%
         ungroup()
       
-      #Previous BMI categories (last 3 years)
-      
+      ###Check for BMI categories recorded in the last 3 years
       incProgress(1/55, detail = paste("checking BMI"))
-      
       bmi <- omr %>% filter(grepl("BMI",result_name)) %>% mutate(
         BMI_cat = case_when(as.numeric(result_value)>=30 ~ "Obese",
                             as.numeric(result_value)>=25 &
@@ -891,11 +738,9 @@ server <- function(input, output) {
         prev_event_type_assign(pUnderweight,bmi,BMI_cat,"Underweight",1095,1) %>%
         prev_event_type_assign(pOverweight,bmi,BMI_cat,"Overweight",1095,1) %>%
         ungroup()
-      
       print("bmi")
       
-      #Observation frequency on day of test
-      
+      ###Check observation frequency on day of the urine test
       incProgress(1/55, detail = paste("checking observation frequency"))
       
       obs <- obs %>% mutate(ordertime=as.Date(ordertime))
@@ -909,119 +754,101 @@ server <- function(input, output) {
                                          ob_freq = standardize(ob_freq)) %>% 
         select(-ordertime)
       
-      
-      #RECENT NUTRITION CONSULT (last year)
-      
+      ###Check for nutrition consultation in the last year
       incProgress(1/55, detail = paste("checking for recent Nutrition input"))
-      
       nutr <- poe %>% filter(grepl("Nutrition consult",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Nutrition consult") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pNUTR,nutr,order_subtype,"Nutrition consult",365,1) %>%
         ungroup()
       
-      #RECENT PHYSIO (last year)
-      
+      ###Check for physiotherapy consultation in the last year
       incProgress(1/55, detail = paste("checking for recent physiotherapy"))
-      
       physio <- poe %>% filter(grepl("Physical Therapy",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Physical Therapy") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pPhysio,physio,order_subtype,"Physical Therapy",365,1) %>%
         ungroup()
       
-      #RECENT RESTRAINTS (last year)
-      
+      ###Check for the need for restraints in the last year
       incProgress(1/55, detail = paste("checking for previous restraint requirement"))
-      
       restr <- poe %>% filter(grepl("Restraints",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Restraints") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pRestr,restr,order_subtype,"Restraints",365,1) %>%
         ungroup()
       
-      #RECENT SOCIAL WORKER INPUT (last year)
-      
+      ###Check for social worker consultation in the last year
       incProgress(1/55, detail = paste("checking for recent social worker input"))
-      
       social <- poe %>% filter(grepl("Social Work",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Social Work") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pSocial,social,order_subtype,"Social Work",365,1) %>%
         ungroup()
       
-      #RECENT OT INPUT (last year)
-      
+      ###Check for occupational therapy consultation in the last year
       incProgress(1/55, detail = paste("checking for recent OT input"))
-      
       ot <- poe %>% filter(grepl("Occupational Therapy",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Occupational Therapy") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pOT,ot,order_subtype,"Occupational Therapy",365,1) %>%
         ungroup()
       
-      #RECENT TPN (last year)
-      
+      ###Check for total parenteral nutrition in the last year
       incProgress(1/55, detail = paste("checking for recent TPN"))
-      
       tpn <- poe %>% filter(grepl("Central TPN",order_subtype,ignore.case=T)) %>% mutate(
         order_subtype="Central TPN") %>% rename(admittime="ordertime")
       urines_to_test <- urines_to_test %>% 
         prev_event_type_assign(pTPN,tpn,order_subtype,"Central TPN",365,1) %>%
         ungroup()
       
-      #write for python
+      ##Prediction model
       
+      ###Write dataframe to file for Python
       incProgress(1/55, detail = paste("calculating probability predictions"))
-      
       daily_urines <- tibble(urines_to_test %>% ungroup() %>% select(subject_id,micro_specimen_id,pAMPr:pTPN))
       write_csv(daily_urines,"daily_urines.csv")
       
-      #run python module
+      ###Run probability prediction script in Python
       reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Prediction_run.py")
-      
       updateSelectInput(inputId = "specimen_id",choices=urines_to_test %>%
                           select(micro_specimen_id) %>% arrange(micro_specimen_id))
+      
+      ##Unlock sliders for input of panel size and number of panels
       
       updateSliderInput(inputId = "panel_size",min=1,max = nrow(probs_df_overall %>% 
                                                                   distinct(Antimicrobial))-1,
                         value=1)
-      
       updateSliderInput(inputId = "n_panels",min=1,max=6,value=6,step=1)
-      
-      
       TSP_trigger <- 1
-      
       TSP_trigger_df(TSP_trigger)
       
     })
     
   })
   
-  chosen_specimen <- reactive({input$specimen_id})
   
+  ##Initialise chosen specimen and test reactive variables
+  
+  chosen_specimen <- reactive({input$specimen_id})
   chosen_tests <- reactive({probs_df_overall() %>%
       aware_mkI(spec_id = chosen_specimen(), panel_size = input$panel_size) %>% 
       arrange(`Recommended tests`)})
   
+  ##Initialise checkbox for efficiency-optimised ordering
+  
   observeEvent(input$button,{
-    
     probs_df_overall <- reactive({read_csv("probs_df_overall.csv")})
-    
     output$selected_abx <- renderTable(chosen_tests())
-    
     output$prob_plot <- renderPlot(plot_probs(probs_df_overall(),chosen_tests(),chosen_specimen()))
-    
     updateCheckboxInput(inputId = "checkbox", value=F)
-    
   })
   
+  ##Initiaise remaining reactive variables
   
   probs_df_overall <- reactive({read_csv("probs_df_overall.csv")})
-  
   combos <- reactive({data.frame(combn(probs_df_overall() %>% distinct(Antimicrobial) %>% unlist(),size_panel(),simplify=F))})
   panel_number <- reactive({input$n_panels})
-  
   size_panel <- reactive({input$panel_size})
   
   closest_panel <- reactiveVal(NULL)
@@ -1045,69 +872,47 @@ server <- function(input, output) {
   observeEvent(input$button2, {
     
     
-    ######## NEW SECTION
+    ##Test prioritisation based on probability of susceptibility to Access agents
     
     test_recs <- reactiveVal(data.frame(matrix(nrow = size_panel(), ncol = 0)))
-    
     for (i in 1:nrow(probs_df_overall() %>% distinct(micro_specimen_id))) {
-      
       rec_result <- probs_df_overall() %>% aware_mkI(spec_id = probs_df_overall()$micro_specimen_id[i], panel_size = size_panel()) %>% 
         select(1)
-      
       rec(rec_result)
-      
       test_rec_result <- cbind(test_recs(),rec())
-      
       test_recs(test_rec_result)
-      
-      
     }
     
     diff_df_1 <- data.frame(matrix(ncol=ncol(test_recs()),nrow=0))
-    
     diff_df(diff_df_1)
-    
     
     for(i in 1:ncol(test_recs())) {
       
       for (j in 1:ncol(test_recs())) {
-        
         len1 <- length(setdiff(test_recs()[,i],test_recs()[,j]))
-        
         len2(len1)
-        
         len_vec_res <- append(len_vec(),len2())
-        
         len_vec(len_vec_res)
-        
       }
       
-      
       diff_df_res <- rbind(diff_df(),len_vec())
-      
       diff_df(diff_df_res)
-      
       len_vec_res <- c()
-      
       len_vec(len_vec_res)
-      
     }
-    
     
     colnames(diff_df_res) <- probs_df_overall() %>% distinct(micro_specimen_id) %>% unlist()
     rownames(diff_df_res) <- probs_df_overall() %>% distinct(micro_specimen_id) %>% unlist()
-    
     diff_df(diff_df_res)
-    
     panel_clusters <- hclust(as.dist(diff_df()),method="ward.D2")
     panel_vector <- cutree(panel_clusters,k=panel_number())
     panel_dend <- panel_clusters %>% as.dendrogram()
-    
     colnames(test_rec_result) <- names(panel_vector)
     test_recs(test_rec_result)
     panel_recs <- rbind(test_recs(),panel_vector)
-    
     panel_recs_final(panel_recs)
+    
+    ##Render recommended test panel
     
     session_func <- function() {
       
@@ -1124,17 +929,12 @@ server <- function(input, output) {
         session_panels <- cbind(session_panels,recs_panel)
         
       }
-      
       colnames(session_panels) <- seq(1,panel_number())
-      
       session_panels_final(session_panels)
-      
       session_panels_final()
-      
     }
     
     output$selected_panels <- renderTable(session_func())
-    
     
     plot_output_func <- function() {
       
@@ -1180,14 +980,11 @@ server <- function(input, output) {
     }
     
     output$rec_panel <- renderText(print("Recommended session panels:"))
-    
     output$panels_plot <- renderPlot(plot_output_func())
-    
     updateCheckboxInput(inputId = "checkbox", value=F)
-    
-    
   })
   
+  ###Enable efficiency-optimised ordering by checkbox using travelling salesmane problem
   
   observeEvent(input$checkbox, {
     
@@ -1199,70 +996,46 @@ server <- function(input, output) {
         
         rec_result <- probs_df_overall() %>% aware_mkI(spec_id = probs_df_overall()$micro_specimen_id[i], panel_size = size_panel()) %>% 
           select(1)
-        
         rec(rec_result)
-        
         test_rec_result <- cbind(test_recs(),rec())
-        
         test_recs(test_rec_result)
-        
-        
       }
       
       print(test_recs())
-      
       diff_df_1 <- data.frame(matrix(ncol=ncol(test_recs()),nrow=0))
-      
       diff_df(diff_df_1)
-      
       
       for(i in 1:ncol(test_recs())) {
         
         for (j in 1:ncol(test_recs())) {
           
           len1 <- length(setdiff(test_recs()[,i],test_recs()[,j]))
-          
           len2(len1)
-          
           len_vec_res <- append(len_vec(),len2())
-          
           len_vec(len_vec_res)
-          
         }
         
-        
         diff_df_res <- rbind(diff_df(),len_vec())
-        
         diff_df(diff_df_res)
-        
         len_vec_res <- c()
-        
         len_vec(len_vec_res)
-        
       }
       
       
       colnames(diff_df_res) <- probs_df_overall() %>% distinct(micro_specimen_id) %>% unlist()
       rownames(diff_df_res) <- probs_df_overall() %>% distinct(micro_specimen_id) %>% unlist()
-      
       diff_df(diff_df_res)
-      
       dm <- diff_df()
       dm <- dist(dm)
       dm <- TSP(dm)
       label_order <- labels(solve_TSP(dm))
-      
       updateSelectInput(inputId = "specimen_id",choices = label_order)
-      
     }
-    
   })
-  
   
   observeEvent(input$panel_size, {
     
     updateCheckboxInput(inputId = "checkbox", value=F)
-    
     
   })
   
@@ -1271,12 +1044,12 @@ server <- function(input, output) {
     
     updateCheckboxInput(inputId = "checkbox", value=F)
     
-    
   })
   
   
 }
 
-# Run the application 
+##Run application
+
 shinyApp(ui = ui, server = server)  
 
