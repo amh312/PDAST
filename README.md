@@ -33,24 +33,24 @@ To reproduce the main model validation, microsimulation study, fairness analysis
 3. Run **PDAST_microsimulation.R***
 4. Run **PDAST_stability.R**
 
-To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available: 
-2. Run **UDAST_train_test_org_id.py**
-3. Run **UDAST_train_test_AST.py**
+To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available:  
+2. Run **UDAST_train_test_org_id.py**  
+3. Run **UDAST_train_test_AST.py**  
 
-To reproduce the analysis where all 'I' results are reclassified as 'R': 
-2. Run **UDAST_train_test_I-R.py**
-3. Run **PDAST_microsim_I_sensitivity.R***
+To reproduce the analysis where all 'I' results are reclassified as 'R':  
+2. Run **UDAST_train_test_I-R.py**  
+3. Run **PDAST_microsim_I_sensitivity.R***  
 
-To reproduce the multinomial model validation sensitivity analysis: 
-2. Run **UDAST_train_test_multinomial.py**
+To reproduce the multinomial model validation sensitivity analysis:  
+2. Run **UDAST_train_test_multinomial.py**  
 
-To reproduce the out-of-sample time cross validation sensitivity analysis:
-2. Run **PDAST_microsimulation.R***
+To reproduce the out-of-sample time cross validation sensitivity analysis:  
+2. Run **PDAST_microsimulation.R***  
 
-To reproduce the specimen result clinical contextual analysis:
-2. Run **PDAST_contextual_analysis.R**
+To reproduce the specimen result clinical contextual analysis:  
+2. Run **PDAST_contextual_analysis.R**  
 
 To run the prototype application: 
-2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.
+2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.  
 
 *This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running the **PDAST_microsimulation.R*** code up to the point that reticulate is used, running the **Prediction_run.py** file in *Python*, then running the remainder of **PDAST_microsimulation.R***. Remember to substitute in your local directory filepath in place of #FILEPATH#.
