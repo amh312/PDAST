@@ -1,4 +1,5 @@
 #CLEANING
+options(error=NULL)
 
 ##Packages
 
@@ -30,7 +31,7 @@ path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
 
 ##Functions
 
-####Read-in and cleaning
+###Read-in and cleaning
 read_in <- function(file_name) {
   
   file_path <- file.path(path_to_data, file_name)
@@ -179,7 +180,7 @@ prescriptions_clean <- function(file_location,file_name) {
   
 }
 
-####Intrinsic resistance population
+###Intrinsic resistance population
 intr_mic <- function(df) {
   
   x <- custom_eucast_rules(genus=="Enterococcus"~cephalosporins=="R",#----------------------------------------------Add custom rules
@@ -271,7 +272,7 @@ intr_mic <- function(df) {
   
 }
 
-####Imputing missing results
+###Imputing missing results
 res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta_prior,antimicrobial_name,extra="") {
   
   antibiotic <- enquo(antibiotic)
@@ -1262,268 +1263,6 @@ icd_grouping <- function(df) {
   
 }
 
-###Prioritisation function based on Access 'S' probability
-aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
-  df %>% filter(micro_specimen_id==spec_id) %>%
-    mutate(aware_utility = case_when(
-      as.ab(Antimicrobial)=="AMP" & (S) > acs_cutoff ~ 1+S,
-      as.ab(Antimicrobial)=="SAM" & (S) > acs_cutoff ~ 1+S,
-      as.ab(Antimicrobial)=="TZP" ~ (S),
-      as.ab(Antimicrobial)=="CZO" & (S) > acs_cutoff ~ 1+S,
-      as.ab(Antimicrobial)=="CRO" ~(S),
-      as.ab(Antimicrobial)=="CAZ" ~(S),
-      as.ab(Antimicrobial)=="FEP" ~(S),
-      as.ab(Antimicrobial)=="MEM" ~(S),
-      as.ab(Antimicrobial)=="CIP" ~(S),
-      as.ab(Antimicrobial)=="GEN" & (S) > acs_cutoff ~ 1+S,
-      as.ab(Antimicrobial)=="SXT" & (S) > acs_cutoff ~ 1+S,
-      as.ab(Antimicrobial)=="NIT" & (S) > acs_cutoff ~ 1+S,
-      TRUE ~ S)) %>% 
-    arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
-    mutate(aware_utility = round(aware_utility,1)) %>% slice(1:panel_size) %>% 
-    rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
-  
-}
-
-###Functions for stability analysis
-error_dummies <- function(df) {
-  
-  if ("I" %in% colnames(df) & "NT" %in% colnames(df)) {
-    
-    df %>% select(-1) %>% 
-      relocate(S, .before = "actval") %>% 
-      relocate(I, .before = "actval") %>%
-      relocate(R, .before = "actval") %>%
-      relocate(NT, .before = "actval") %>%
-      mutate(S_error = case_when(actval=="S" ~1, TRUE~0),
-             I_error = case_when(actval=="I" ~1, TRUE~0),
-             R_error = case_when(actval=="R" ~1, TRUE~0),
-             NT_error = case_when(actval=="NT" ~1, TRUE~0)) %>% 
-      mutate(S_error = abs(S - S_error),
-             I_error = abs(I - I_error),
-             R_error = abs(R - R_error),
-             NT_error = abs(NT - NT_error))
-    
-  } else if ("I" %in% colnames(df) & !("NT" %in% colnames(df))) {
-    
-    df %>% select(-1) %>% 
-      mutate(NT = NA) %>% 
-      relocate(S, .before = "actval") %>% 
-      relocate(I, .before = "actval") %>%
-      relocate(R, .before = "actval") %>%
-      relocate(NT, .before = "actval") %>% 
-      mutate(S_error = case_when(actval=="S" ~1, TRUE~0),
-             I_error = case_when(actval=="I" ~1, TRUE~0),
-             R_error = case_when(actval=="R" ~1, TRUE~0),
-             NT_error = case_when(actval=="NT" ~1, TRUE~0)) %>% 
-      mutate(S_error = abs(S - S_error),
-             I_error = abs(I - I_error),
-             R_error = abs(R - R_error),
-             NT_error = abs(NT - NT_error))
-    
-  } else if ("NT" %in% colnames(df) & !("I" %in% colnames(df))) {
-    
-    df <- df %>% select(-1) %>% 
-      mutate(I = NA) %>% 
-      relocate(S, .before = "actval") %>% 
-      relocate(I, .before = "actval") %>%
-      relocate(R, .before = "actval") %>%
-      relocate(NT, .before = "actval") %>% 
-      mutate(S_error = case_when(actval=="S" ~1, TRUE~0),
-             I_error = case_when(actval=="I" ~1, TRUE~0),
-             R_error = case_when(actval=="R" ~1, TRUE~0),
-             NT_error = case_when(actval=="NT" ~1, TRUE~0)) %>% 
-      mutate(S_error = abs(S - S_error),
-             I_error = abs(I - I_error),
-             R_error = abs(R - R_error),
-             NT_error = abs(NT - NT_error))
-    
-  } else if (!("NT" %in% colnames(df)) & !("I" %in% colnames(df))) {
-    
-    df <- df %>% select(-1) %>% 
-      mutate(I = NA, NT = NA) %>% 
-      relocate(S, .before = "actval") %>% 
-      relocate(I, .before = "actval") %>%
-      relocate(R, .before = "actval") %>%
-      relocate(NT, .before = "actval") %>% 
-      mutate(S_error = case_when(actval=="S" ~1, TRUE~0),
-             I_error = case_when(actval=="I" ~1, TRUE~0),
-             R_error = case_when(actval=="R" ~1, TRUE~0),
-             NT_error = case_when(actval=="NT" ~1, TRUE~0)) %>% 
-      mutate(S_error = abs(S - S_error),
-             I_error = abs(I - I_error),
-             R_error = abs(R - R_error),
-             NT_error = abs(NT - NT_error))
-    
-  }
-  
-}
-train_sizer <- function(df,train_size_val) {
-  
-  df %>% filter(train_size==train_size_val) %>% group_by(model) %>% 
-    summarise(meanS = base::mean(S,na.rm=T),meanI = base::mean(I,na.rm=T),
-              meanR = base::mean(R,na.rm=T),meanNT = base::mean(NT,na.rm=T),
-              meanSer = base::mean(S_error,na.rm=T),meanIer = base::mean(I_error,na.rm=T),
-              meanRer = base::mean(R_error,na.rm=T),meanNTer = base::mean(NT_error,na.rm=T),
-              meanAUC = base::mean(AUC,na.rm=T)) %>%
-    mutate(train_size = train_size_val) %>% ungroup()
-  
-}
-risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
-  
-  p2 <- read_csv(csv1)
-  p3 <- read_csv(csv2)
-  p4 <- read_csv(csv3)
-  p5 <- read_csv(csv4)
-  p6 <- read_csv(csv5)
-  p7 <- read_csv(csv6)
-  p8 <- read_csv(csv7)
-  p9 <- read_csv(csv8)
-  
-  p2$train_size <- 0.16
-  p3$train_size <- 0.14
-  p4$train_size <- 0.12
-  p5$train_size <- 0.1
-  p6$train_size <- 0.08
-  p7$train_size <- 0.06
-  p8$train_size <- 0.04
-  p9$train_size <- 0.02
-  
-  p_df <- data.frame(rbind(p2,p3,p4,p5,p6,p7,p8,p9))
-  
-  p_df <- error_dummies(p_df)
-  
-  mean_risk_df <- data.frame(rbind(
-    p_df %>% train_sizer(0.02),
-    p_df %>% train_sizer(0.04),
-    p_df %>% train_sizer(0.06),
-    p_df %>% train_sizer(0.08),
-    p_df %>% train_sizer(0.1),
-    p_df %>% train_sizer(0.12),
-    p_df %>% train_sizer(0.14),
-    p_df %>% train_sizer(0.16)
-  ))
-  
-  mean_risk_df$Antimicrobial <- abx
-  mean_risk_df
-  
-}
-mean_risk_instab <- function(df,antimicrobial) {
-  
-  df$train_size <- as.character(df$train_size)
-  df$train_size <- factor(df$train_size,levels=c("0.16","0.14","0.12","0.1","0.08","0.06","0.04","0.02"))
-  
-  ggplot(df, aes(x=1-meanR,group=train_size,color=train_size)) +
-    geom_density()+
-    xlim(c(0,1)) +
-    labs(color="Training\nsample\nproportion")+
-    xlab("Mean estimated probability of susceptibility")+
-    ylab("Frequency in 100 model outputs")+
-    theme(axis.text.y = element_blank(),
-          axis.ticks.y = element_blank())+
-    ggtitle(glue("{antimicrobial}:\nInstability in mean estimated probability of susceptibility"))
-  
-  
-}
-risk_dist_instab <- function(csv,antimicrobial) {
-  
-  df <- read_csv(csv)
-  
-  this <- data.frame(matrix(ncol=2,nrow=0))
-  colnames(this) <- c("Probability","model")
-  
-  for (i in 2:101) {
-    
-    this2 <- df %>% filter(model==i-1) %>% select(R,model)
-    colnames(this2) = colnames(this)
-    
-    this <- data.frame(rbind(this,this2))
-    
-  }
-  
-  ggplot(this,aes(x=1-Probability,group=model)) +
-    geom_boxplot(outlier.alpha = 0.01,outlier.colour ="#00BFC4",fill="#00BFC4") +
-    ggtitle(glue("{antimicrobial}:\nInstability in 100 sets of susceptibility probability predictions\n(Training sample reduced to 2% of dataset)"))+
-    xlim(0,1)+
-    theme(axis.text.y=element_blank(),
-          axis.ticks.y=element_blank()) +
-    xlab("Estimated probabilities of susceptibility")
-}
-mape_instab <- function(df,antimicrobial) {
-  
-  ya <- df %>% filter(train_size==0.02)
-  ya <- mean(ya$meanRer)
-  yb <- df %>% filter(train_size==0.04)
-  yb <- mean(yb$meanRer)
-  yc <- df %>% filter(train_size==0.06)
-  yc <- mean(yc$meanRer)
-  yd <- df %>% filter(train_size==0.08)
-  yd <- mean(yd$meanRer)
-  ye <- df %>% filter(train_size==0.1)
-  ye <- mean(ye$meanRer)
-  yf <- df %>% filter(train_size==0.12)
-  yf <- mean(yf$meanRer)
-  yg <- df %>% filter(train_size==0.14)
-  yg <- mean(yg$meanRer)
-  yh <- df %>% filter(train_size==0.16)
-  yh <- mean(yh$meanRer)
-  
-  ggplot(df,aes(x=train_size,y=meanRer))+
-    geom_jitter(width=0.005,alpha=0.1) +
-    ylim(c(0,1)) +
-    xlim(c(0,0.18)) +
-    geom_segment(aes(x=0.015,xend=0.025,y=ya,yend=ya))+
-    geom_segment(aes(x=0.035,xend=0.045,y=yb,yend=yb))+
-    geom_segment(aes(x=0.055,xend=0.065,yc,yend=yc))+
-    geom_segment(aes(x=0.075,xend=0.085,y=yd,yend=yd))+
-    geom_segment(aes(x=0.095,xend=0.105,y=ye,yend=ye))+
-    geom_segment(aes(x=0.115,xend=0.125,y=yf,yend=yf))+
-    geom_segment(aes(x=0.135,xend=0.145,y=yg,yend=yg))+
-    geom_segment(aes(x=0.155,xend=0.165,y=yh,yend=yh))+
-    ggtitle(glue("{antimicrobial}:\nInstability in mean absolute susceptibility\nprediction error with smaller training datasets")) +
-    xlab("Training dataset proportion of whole dataset") +
-    ylab("Mean absolute prediction error")
-  
-  
-}
-meanAUC_instab <- function(df,antimicrobial) {
-  
-  ya <- df %>% filter(train_size==0.02)
-  ya <- 1-mean(ya$meanAUC)
-  yb <- df %>% filter(train_size==0.04)
-  yb <- 1-mean(yb$meanAUC)
-  yc <- df %>% filter(train_size==0.06)
-  yc <- 1-mean(yc$meanAUC)
-  yd <- df %>% filter(train_size==0.08)
-  yd <- 1-mean(yd$meanAUC)
-  ye <- df %>% filter(train_size==0.1)
-  ye <- 1-mean(ye$meanAUC)
-  yf <- df %>% filter(train_size==0.12)
-  yf <- 1-mean(yf$meanAUC)
-  yg <- df %>% filter(train_size==0.14)
-  yg <- 1-mean(yg$meanAUC)
-  yh <- df %>% filter(train_size==0.16)
-  yh <- 1-mean(yh$meanAUC)
-  
-  ggplot(df,aes(x=train_size,y=1-meanAUC))+
-    geom_jitter(width=0.005,alpha=0.1) +
-    ylim(c(0,1)) +
-    xlim(c(0,0.18)) +
-    geom_segment(aes(x=0.015,xend=0.025,y=ya,yend=ya))+
-    geom_segment(aes(x=0.035,xend=0.045,y=yb,yend=yb))+
-    geom_segment(aes(x=0.055,xend=0.065,yc,yend=yc))+
-    geom_segment(aes(x=0.075,xend=0.085,y=yd,yend=yd))+
-    geom_segment(aes(x=0.095,xend=0.105,y=ye,yend=ye))+
-    geom_segment(aes(x=0.115,xend=0.125,y=yf,yend=yf))+
-    geom_segment(aes(x=0.135,xend=0.145,y=yg,yend=yg))+
-    geom_segment(aes(x=0.155,xend=0.165,y=yh,yend=yh))+
-    ggtitle(glue("{antimicrobial}:\nInstability in AUC-ROC with smaller training datasets")) +
-    xlab("Training dataset proportion of whole dataset") +
-    ylab("Micro-averaged AUC")
-  
-  
-}
-
 ##Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
 drugs <- read_csv("prescriptions.csv") #Prescriptions
 diagnoses <- read_csv("diagnoses_icd.csv") #ICD-coded diagnoses
@@ -1999,11 +1738,9 @@ missing_check(pos_urines)
 micro <- micro %>% semi_join(pos_urines, by="subject_id") %>% 
   filter(!grepl('URINE', spec_type_desc))
 
-
-
-
-
-
+###Write csvs
+write_csv(pos_urines,"pos_urines_pre_features.csv")
+write_csv(micro,"micro_clean2.csv")
 
 
 
