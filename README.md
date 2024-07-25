@@ -28,7 +28,7 @@ Before running the code, the data and *Python* files should be saved into a secu
 
 Then, for the subsequent analyses:
 
-To reproduce the main model validation, microsimulation study, fairness analysis, and stability analysis: 
+To reproduce the main model validation, microsimulation study, fairness analysis, and stability analysis:  
 2. Run **UDAST_train_test_main.py**; 
 3. Run **PDAST_microsimulation.R***
 4. Run **PDAST_stability.R**
