@@ -14,6 +14,29 @@ library("rlang")
 
 ##Functions
 
+###Generic previous event assignment function
+aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
+  df %>% filter(micro_specimen_id==spec_id) %>%
+    mutate(aware_utility = case_when(
+      as.ab(Antimicrobial)=="AMP" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="SAM" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="TZP" ~ (S),
+      as.ab(Antimicrobial)=="CZO" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="CRO" ~(S),
+      as.ab(Antimicrobial)=="CAZ" ~(S),
+      as.ab(Antimicrobial)=="FEP" ~(S),
+      as.ab(Antimicrobial)=="MEM" ~(S),
+      as.ab(Antimicrobial)=="CIP" ~(S),
+      as.ab(Antimicrobial)=="GEN" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="SXT" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="NIT" & (S) > acs_cutoff ~ 1+S,
+      TRUE ~ 0)) %>% 
+    arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
+    mutate(aware_utility = round(aware_utility,1)) %>% slice(1:panel_size) %>% 
+    rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
+  
+}
+
 ###Assigning personalised recommendations to dataframe
 assign_PDAST <- function(df,probab_df,decision_threshold,method_used) {
   
@@ -235,6 +258,47 @@ minuser <- function(df,abx) {
   
 }
 
+###Main dot plot of all Sresults and WHO Access S results
+main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
+                            left_label,right_label,sens_addendum="") {
+  
+  plot_df <- df %>% filter(grepl(pdast_1,AWaRe_results) |
+                             grepl(standard_1,AWaRe_results) |
+                             grepl(pdast_2,AWaRe_results) |
+                             grepl(standard_2,AWaRe_results) )
+  
+  plot_df$AWaRe_results <- factor(plot_df$AWaRe_results,levels = c(pdast_1,
+                                                                   standard_1,
+                                                                   pdast_2,
+                                                                   standard_2))
+  
+  main_aware_plot <- ggplot(plot_df,aes(x=AWaRe_results,y=n,color=Approach)) +
+    geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
+    stat_summary(geom="point",fun="median",size=4)+
+    geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
+    ylab("")+
+    ggtitle(glue("Microsimulation study:\nNumber of susceptible results provided per specimen\n{(sens_addendum)}")) +
+    theme(axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_text(vjust=3),
+          plot.margin = unit(c(0.1,0.1,0.1,0.25),"inches"),
+          plot.title = element_text(hjust=0.5),
+          panel.grid.minor.y = element_blank(),
+          panel.grid.major.x = element_blank())+
+    geom_vline(xintercept = 2.5,linetype="dashed",color="grey") +
+    scale_y_continuous(limits = c(-0.15,7),breaks=c(0:6)) +
+    scale_color_manual(values=c("#00BFC4","#F8766D"))+
+    geom_text(x=1.5,y=6.75,label=glue("{left_label}"),color="#3C3C3C",size=4) +
+    geom_text(x=3.5,y=6.75,label=glue("{right_label}"),color="#3C3C3C",size=4)
+  
+  ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = main_aware_plot, device = "pdf", width = 6, height = 6,
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+  
+  main_aware_plot
+  
+}
+
 ###Tests of statistical significance for Access and all susceptible results
 stats_reporter <- function(df, personalised_col_acs, personalised_col_all, standard_col_acs, standard_col_all) {
   personalised_col_acs <- enquo(personalised_col_acs)
@@ -416,7 +480,7 @@ urines_aware <- urines_aware %>% assign_standard(probs_df_overall,micro_raw,"STA
 urines_aware$n_allS_PDAST6 <- urines_aware %>% number_SorI_pdast(all_abs)
 
 ###Total number of R results provided by personalised panel
-urines_aware$n_allR_standard6 <- urines_aware %>% number_R_pdast(all_abs)
+urines_aware$n_allR_PDAST6 <- urines_aware %>% number_R_pdast(all_abs)
 
 ###Number of Access category S or I results provided by personalised panel
 urines_aware$n_acS_PDAST6 <- urines_aware %>% number_SorI_pdast(access_abs)
@@ -462,42 +526,40 @@ create_df <- function(df, col_name, aware_result, panel) {
 }
 acs_PDAST6 <- create_df(urines_aware, n_acS_PDAST6, "PDAST\nAccess S", "PDAST")
 acs_standard6 <- create_df(urines_aware, n_acS_standard6, "Standard\nAccess S", "Standard")
+was_PDAST6 <- create_df(urines_aware, n_waS_PDAST6, "PDAST\nWatch S", "PDAST")
+was_standard6 <- create_df(urines_aware, n_waS_standard6, "Standard\nWatch S", "Standard")
 all_PDAST6 <- create_df(urines_aware, n_allS_PDAST6, "PDAST\nAll S", "PDAST")
 all_standard6 <- create_df(urines_aware, n_allS_standard6, "Standard\nAll S", "Standard")
-acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,all_PDAST6,all_standard6))
+acr_PDAST6 <- create_df(urines_aware, n_acR_PDAST6, "PDAST\nAccess R", "PDAST")
+acr_standard6 <- create_df(urines_aware, n_acR_standard6, "Standard\nAccess R", "Standard")
+war_PDAST6 <- create_df(urines_aware, n_waR_PDAST6, "PDAST\nWatch R", "PDAST")
+war_standard6 <- create_df(urines_aware, n_waR_standard6, "Standard\nWatch R", "Standard")
+allr_PDAST6 <- create_df(urines_aware, n_allR_PDAST6, "PDAST\nAll R", "PDAST")
+allr_standard6 <- create_df(urines_aware, n_allR_standard6, "Standard\nAll R", "Standard")
+acs_df %>% count(AWaRe_results)
+acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,
+                           was_PDAST6,was_standard6,
+                           all_PDAST6,all_standard6,
+                           acr_PDAST6,acr_standard6,
+                           war_PDAST6,war_standard6,
+                           allr_PDAST6,allr_standard6))
 acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
                                                         iqr_max=quantile(n)[4]) %>% 
   ungroup() %>% 
   mutate(iqr_min=case_when(iqr_min<0 ~ 0,TRUE~iqr_min))
-acs_df$AWaRe_results <- factor(acs_df$AWaRe_results,levels = c("PDAST\nAll S",
-                                                               "Standard\nAll S",
-                                                               "PDAST\nAccess S",
-                                                               "Standard\nAccess S"))
 acs_df <- acs_df %>% rename(Approach="Panel")
 
-###Dot plot of number of all S results and Access S results per panel
-main_aware_plot <- ggplot(acs_df,aes(x=AWaRe_results,y=n,color=Approach)) +
-  geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
-  stat_summary(geom="point",fun="median",size=4)+
-  geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
-  ylab("")+
-  ggtitle("Microsimulation study:\nNumber of susceptible results provided per specimen") +
-  theme(axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(vjust=3),
-        plot.margin = unit(c(0.1,0.1,0.1,0.25),"inches"),
-        plot.title = element_text(hjust=0.5),
-        panel.grid.minor.y = element_blank(),
-        panel.grid.major.x = element_blank())+
-  geom_vline(xintercept = 2.5,linetype="dashed",color="grey") +
-  scale_y_continuous(limits = c(-0.15,7),breaks=c(0:6)) +
-  scale_color_manual(values=c("#00BFC4","#F8766D"))+
-  geom_text(x=1.5,y=6.75,label="All agents",color="#3C3C3C",size=4) +
-  geom_text(x=3.5,y=6.75,label="WHO Access agents",color="#3C3C3C",size=4)
+###Main dot plot of number of all S results and Access S results per panel
+acs_df %>% main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
+                           "All agents","WHO access agents")
 
-ggsave("main_aware_plot.pdf", plot = main_aware_plot, device = "pdf", width = 6, height = 6,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+###Dot plot of number of all R results and Access R results per panel
+acs_df %>% main_dotplotter("PDAST\nAll R","Standard\nAll R","PDAST\nAccess R","Standard\nAccess R",
+                           "All agents (R)","WHO access agents (R)","(Access agent resistance)")
+
+###Dot plot of number of Watch S results and Watch R results per panel
+acs_df %>% main_dotplotter("PDAST\nWatch S","Standard\nWatch S","PDAST\nWatch R","Standard\nWatch R",
+                           "WHO watch agents (S)","WHO watch agents (R)","(Watch agent results)")
 
 ###Tests of statistical significance for Access and all susceptible results
 urines_aware %>% stats_reporter(n_acS_PDAST6, n_allS_PDAST6, n_acS_standard6, n_allS_standard6)
