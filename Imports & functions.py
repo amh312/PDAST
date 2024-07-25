@@ -38,7 +38,7 @@ def df_clean(filepath,target,to_drop):
 
 ###LR hyperparameter tuning & feature selection
 def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="auto",cw=None,
-                      scorer='f1_weighted',target_ab='antibiotic',targ_result=''):
+                      scorer='f1_weighted',target_ab='antibiotic',targ_result='',analysis_type=''):
 
     X_train, X_test, y_train, y_test = train_test_split(
         ht_features,
@@ -206,7 +206,7 @@ def lr_hyp_tune_feats2(df,target,ht_features,test=0.2,random=1,folds=6,model_typ
         plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
         plt.legend([])
         plt.tight_layout()
-        plt.savefig(target_ab + targ_result + "-posfeatures.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(target_ab + targ_result + "-posfeatures_multi.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 
         fig, ax = plt.subplots()
@@ -217,7 +217,7 @@ def lr_hyp_tune_feats2(df,target,ht_features,test=0.2,random=1,folds=6,model_typ
         plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
         plt.legend([])
         plt.tight_layout()
-        plt.savefig(target_ab + targ_result + "-negfeatures.pdf",format="pdf",bbox_inches="tight")
+        plt.savefig(target_ab + targ_result + "-negfeatures_multi.pdf",format="pdf",bbox_inches="tight")
         plt.show()
 
     global c_value
@@ -333,7 +333,8 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
 ###LR final validation run
 def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
              cw=None,model_type="auto",thr=0.5,
-                   ab_of_interest="Ampicillin",av="micro"):
+                   ab_of_interest="Ampicillin",av="micro",
+                   analysis_type=''):
 
     global log_reg
     global fairness_model
@@ -405,7 +406,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
                 title="One-vs-Rest ROC curve for "+ab_of_interest+":\n"+label+" vs rest",
             )
 
-            plt.savefig(ab_of_interest + label + "-roc.pdf", format="pdf", bbox_inches="tight")
+            plt.savefig(ab_of_interest + label + analysis_type + "-roc.pdf", format="pdf", bbox_inches="tight")
             plt.show()
 
         X_train, X_test, y_train, y_test = train_test_split(
@@ -454,7 +455,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             title=ab_of_interest + " Micro-averaged One-vs-Rest\nROC",
         )
 
-        plt.savefig(ab_of_interest + "-avroc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + analysis_type + "-avroc.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 
         # store the fpr, tpr, and roc_auc for all averaging strategies
@@ -540,7 +541,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             title=ab_of_interest+" ROCs for\nOne-vs-Rest multiclass",
         )
 
-        plt.savefig(ab_of_interest + "-allroc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + analysis_type + "-allroc.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 
     else:
@@ -598,7 +599,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             title="Binary ROC curve for " + ab_of_interest + " susceptibility"
         )
 
-        plt.savefig(ab_of_interest + "-roc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + analysis_type + "-roc.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 
 ###LR final validation run (out-of-sample time analysis)
@@ -676,7 +677,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
                 title="One-vs-Rest ROC curve for "+ab_of_interest+":\n"+label+" vs rest",
             )
 
-            plt.savefig(ab_of_interest + label + "-roc.pdf", format="pdf", bbox_inches="tight")
+            plt.savefig(ab_of_interest + label + "-roc_time.pdf", format="pdf", bbox_inches="tight")
 
 
         X_train, X_test, y_train, y_test = train_test_split(
@@ -725,7 +726,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             title=ab_of_interest + " Micro-averaged One-vs-Rest\nROC",
         )
 
-        plt.savefig(ab_of_interest + "-avroc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + "-avroc_time.pdf", format="pdf", bbox_inches="tight")
 
 
         # store the fpr, tpr, and roc_auc for all averaging strategies
@@ -811,7 +812,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             title=ab_of_interest+" ROCs for\nOne-vs-Rest multiclass",
         )
 
-        plt.savefig(ab_of_interest + "-allroc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + "-allroc_time.pdf", format="pdf", bbox_inches="tight")
 
 
     else:
@@ -877,7 +878,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             title="Binary ROC curve for " + ab_of_interest + " susceptibility"
         )
 
-        plt.savefig(ab_of_interest + "-roc.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(ab_of_interest + "-roc_time.pdf", format="pdf", bbox_inches="tight")
 
 ###Compiling performance metrics
 def result_compiler(data,output_filename):
@@ -892,6 +893,15 @@ def result_compiler(data,output_filename):
                 flat_data.append([model, metric, None, values])
 
     df = pd.DataFrame(flat_data, columns=['Model', 'Metric', 'Sub-metric', 'Score'])
+
+    s_df = df[(df['Metric'] == 'S')]
+    s_df = s_df.reset_index(drop=True)
+    r_df = df[(df['Metric'] == 'R')]
+    r_df = r_df.reset_index(drop=True)
+    acc_df = df[(df['Metric'] == 'accuracy')]
+    acc_df = acc_df.reset_index(drop=True)
+
+    df = pd.concat([s_df,r_df,acc_df])
 
     df.to_csv(output_filename, index=False)
 
@@ -3045,7 +3055,61 @@ def across_time_per(filename_t,filename_t2):
 ##Wrapping functions
 
 ###Primary test/train/validate
-def train_test_validate_main(csv,ab,abx,antibiotic):
+def train_test_validate_main(csv,ab,abx,antibiotic,type=''):
+
+    global features
+    global urines5
+
+    urines5 = pd.read_csv(csv)
+    urines5['standard_age'] = urines5['standard_age'].map(str)
+    y = urines5[abx]
+    urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
+    urines5.insert(0, abx, y)
+
+
+    #set Y variable
+    urines5['Y'] = urines5[abx]
+    urines5 = urines5.drop(abx,axis=1)
+    features = urines5.drop('Y',axis=1)
+
+    #C hyperparameter tuning and feature selection
+    lr_hyp_tune_feats(target=urines5["Y"],
+                ht_features=features,
+                test=0.2,
+                random=100,
+                folds=6,
+                model_type="ovr",
+                cw='balanced',
+                scorer='roc_auc_ovr',
+                target_ab = antibiotic,
+                      analysis_type=type)
+
+    vari_overall[abx] = vari_list
+    c_values[abx] = c_value
+
+    #LR final run
+    LR_multi_final(target=urines5["Y"],
+             final_features=features,
+             test=0.2,
+             random=100,
+             C_val=c_value,
+             cw='balanced',
+             model_type="ovr",
+             thr=0.5,
+             ab_of_interest=antibiotic,
+             av="micro",
+                   analysis_type=type)
+
+    class_reps[abx] = class_report
+
+    #save fit, variables, and hyperparameters
+    with open(ab+type+'file.pickle','wb') as f:
+        pickle.dump(vari_list,f)
+    with open(ab+type+'fits.pickle','wb') as f:
+        pickle.dump(model_dict,f)
+
+###Multinomial test/train/validate
+def train_test_validate_multinomial(csv,ab,abx,antibiotic):
 
     global features
     global urines5
@@ -3064,7 +3128,7 @@ def train_test_validate_main(csv,ab,abx,antibiotic):
 
 
     #C hyperparameter tuning and feature selection
-    lr_hyp_tune_feats(target=urines5["Y"],
+    lr_hyp_tune_feats2(target=urines5["Y"],
                 ht_features=features,
                 test=0.2,
                 random=100,
@@ -3087,14 +3151,15 @@ def train_test_validate_main(csv,ab,abx,antibiotic):
              model_type="ovr",
              thr=0.5,
              ab_of_interest=antibiotic,
-             av="micro")
+             av="micro",
+                   analysis_type="multinomial")
 
     class_reps[abx] = class_report
 
     #save fit, variables, and hyperparameters
-    with open(ab+'file.pickle','wb') as f:
+    with open(ab+'file_multi.pickle','wb') as f:
         pickle.dump(vari_list,f)
-    with open(ab+'fits.pickle','wb') as f:
+    with open(ab+'fits_multi.pickle','wb') as f:
         pickle.dump(model_dict,f)
 
 ###Model fairness analysis
