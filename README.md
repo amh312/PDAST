@@ -45,7 +45,7 @@ To reproduce the multinomial model validation sensitivity analysis:
 2. Run **UDAST_train_test_multinomial.py**  
 
 To reproduce the out-of-sample time cross validation sensitivity analysis:  
-2. Run **PDAST_microsimulation.R***  
+2. Run **PDAST_time_sensitivity.R***  
 
 To reproduce the specimen result clinical contextual analysis:  
 2. Run **PDAST_contextual_analysis.R**  
