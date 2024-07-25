@@ -20,11 +20,11 @@ Before running the code, the data and *Python* files should be saved into a secu
 
 ***Reproducing the study***
 
-1. To reproduce the study, the following scripts must be run first:
-   a. **PDAST_cleaning.R**
-   b. **PDAST_feature_engineering**
-   c. **PDAST_preprocessing**
-   d. **Imports & functions.py**
+1. To reproduce the study, the following scripts must be run first:  
+   a. **PDAST_cleaning.R**  
+   b. **PDAST_feature_engineering**  
+   c. **PDAST_preprocessing**  
+   d. **Imports & functions.py**  
 
 Then, for the subsequent analyses:
 
