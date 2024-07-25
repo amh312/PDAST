@@ -1,6 +1,8 @@
 #FEATURE ENGINEERING
+options(error=NULL)
 
 ##Packages
+
 library("tidyverse")
 library("tidymodels")
 library("MLmetrics")
@@ -93,13 +95,13 @@ NT_assigner <- function(df) {
 }
 
 ###Applying previous AST result search across multiple result types
-prev_AST_applier <- function(df1,micro_data,suffix,result) {
+prev_AST_applier <- function(df1,micro_data,suffix,result,timeframe=365,n_events=1) {
   
   params <- paste0("p", antibiotics, suffix)
   
   apply_prev_event <- function(df, param, antibiotic) {
     df %>%
-      prev_event_type_assign(!!sym(param), micro_data, !!sym(antibiotic), result, 365, 1)
+      prev_event_type_assign(!!sym(param), micro_data, !!sym(antibiotic), result, timeframe, n_events)
   }
   df1 <- reduce(seq_along(antibiotics), function(df, i) {
     apply_prev_event(df, params[i], antibiotics[i])
@@ -132,21 +134,6 @@ prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_even
     mutate(abx_treatment=NULL,pr_rx_abx_treatment=NULL) %>% 
     filter(grepl('URINE', spec_type_desc))
   
-}
-
-###Applying previous treatment search across multiple agents
-prev_Rx_applier <- function(df, prefix,timeframe) {
-  
-  apply_prev_rx <- function(df, suffix, antibiotic) {
-    param_name <- paste0("p", suffix)
-    df %>%
-      prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, timeframe, 1)
-  }
-  
-  pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
-    apply_prev_rx(df, suffixes[i], antibiotics[i])
-  }, .init = pos_urines) %>%
-    ungroup()
 }
 
 ###Finding abnormal inflammatory markers on day of urine test
@@ -209,15 +196,15 @@ prev_ICD_applier <- function(df,icd_df,prefix,codes) {
 }
 
 ###Checking for previous care events
-care_event_assigner <- function(df,search_term,search_column,feature_name,timeframe) {
+care_event_assigner <- function(df,search_df,search_term,search_column,feature_name,event_date_col,timeframe,n_events=1) {
   
   feature_name <- enquo(feature_name)
   search_column <- enquo(search_column)
   
-  care_event <- poe %>% filter(grepl(search_term,!!search_column,ignore.case=T)) %>% mutate(
-    !!search_column:=search_term) %>% rename(admittime="ordertime")
+  care_event <- search_df %>% filter(grepl(search_term,!!search_column,ignore.case=T)) %>% mutate(
+    !!search_column:=search_term) %>% rename(admittime=event_date_col)
   df %>% 
-    prev_event_type_assign(!!feature_name,care_event,!!search_column,search_term,timeframe,1) %>%
+    prev_event_type_assign(!!feature_name,care_event,!!search_column,search_term,timeframe,n_events) %>%
     ungroup()
   
 }
@@ -229,15 +216,21 @@ assign_bmi_events <- function(df, bmi_df, categories, days, min_events) {
     prev_event_type_assign(acc, !!sym(param), bmi_df, BMI_cat, category, days, min_events)
   }, .init = df)
 }
-
-##Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
+pos_urines <- read_csv("pos_urines_pre_features.csv")
+###Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
 omr <- read_csv("omr.csv") #Measurements e.g., height, weight
 hadm <- read_csv("admissions.csv") #Admission data
 labevents <- read_csv("labevents.csv") #Laboratory tests (non-micro)
 labitems <- read_csv("d_labitems.csv") #Laboratory test codes
 pats <- read_csv("patients.csv") #Patient demographics
 services <- read_csv("services.csv") #Service providers
-
+d_icd_diagnoses <- read_csv("d_icd_diagnoses.csv") #icd codes
+diagnoses_raw <- read_csv("diagnoses_icd.csv") #icd epi
+diagnoses <- read_csv("diagnoses_clean.csv")
+procedures <- read_csv("procedures_clean.csv")
+poe <- read_csv("poe_clean.csv")
+micro <- read_csv("micro_clean2.csv")
+drugs <- read_csv("drugs_clean.csv")
 
 ##Finding previous AST results
 
@@ -250,6 +243,9 @@ antibiotics <- c("AMP", "SAM", "TZP", "CZO", "CRO", "CAZ", "FEP", "MEM",
                  "CIP", "GEN", "SXT", "NIT", "VAN", "AMPC", "TCY", "PEN", 
                  "CLI", "LVX", "AMK", "TOB")
 pos_urines <- prev_AST_applier(pos_urines,micro3,"r","R")
+
+###At least one previous resistant isolate in the last week
+pos_urines <- prev_AST_applier(pos_urines,micro2,"7dr","R",7,1)
 
 ###At least one susceptible isolate in the last year
 pos_urines <- prev_AST_applier(pos_urines,micro3,"s","S")
@@ -264,6 +260,21 @@ pos_urines <- prev_AST_applier(pos_urines,micro3,"i","I")
 antibiotics <- c("AMP", "SAM", "TZP", "CZO", "CRO", "CAZ", "FEP", "MEM", 
                  "CIP", "SXT", "VAN", "PEN")
 pos_urines <- prev_AST_applier(pos_urines,micro2,"nt","NT")
+
+###At least one growth of top ten common specified organisms in urine in the last year
+urine_df <- micro %>% filter(test_name=="URINE CULTURE" & !is.na(org_fullname)) %>% 
+  mutate(admittime=charttime)
+organisms <- urine_df %>% count(org_fullname) %>% arrange(desc(n)) %>% 
+   slice(1:10) %>% pull(org_fullname)
+params <- paste0("pG", organisms,"Urine")
+apply_prev_event <- function(df, param,organism) {
+  df %>%
+    prev_event_type_assign(!!sym(param), urine_df, org_fullname,organism, 365, 1)
+}
+pos_urines <- reduce(seq_along(organisms), function(df, i) {
+  apply_prev_event(df, params[i], organisms[i])
+}, .init = pos_urines) %>%
+  ungroup()
 
 ##Finding previous antimicrobial treatment
 
@@ -284,10 +295,37 @@ suffixes <- c("AMPrx", "AMXrx", "AMCrx", "SAMrx", "TZPrx", "CZOrx", "CZOrx", "CZ
               "AZMrx", "CLIrx", "VANrx", "MTRrx", "LNZrx", "DAPrx", "DOXrx")
 
 ###At least one inpatient antimicrobial prescription in the last year
-pos_urines <- prev_Rx_applier(pos_urines, "p", 365)
+apply_prev_rx <- function(df, suffix, antibiotic) {
+  param_name <- paste0("p", suffix)
+  df %>%
+    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 1)
+}
+pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
+  apply_prev_rx(df, suffixes[i], antibiotics[i])
+}, .init = pos_urines) %>%
+  ungroup()
 
-###At least on inpatient antimicrobial prescription in the last week
-pos_urines <- prev_Rx_applier(pos_urines, "d7", 7)
+###At least one inpatient antimicrobial prescription in the last week
+apply_prev_rx <- function(df, suffix, antibiotic) {
+  param_name <- paste0("d7", suffix)
+  df %>%
+    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 7, 1)
+}
+pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
+  apply_prev_rx(df, suffixes[i], antibiotics[i])
+}, .init = pos_urines) %>%
+  ungroup()
+
+###At least 2 inpatient antimicrobial prescriptions in the last year
+apply_prev_rx <- function(df, suffix, antibiotic) {
+  param_name <- paste0("2x", suffix)
+  df %>%
+    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 2)
+}
+pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
+  apply_prev_rx(df, suffixes[i], antibiotics[i])
+}, .init = pos_urines) %>%
+  ungroup()
 
 ##Find inflammatory marker results
 
@@ -304,9 +342,9 @@ pos_urines <- pos_urines %>%
   prev_event_assign(pHADM,hadm,hadm_id,365,1) %>%
   ungroup()
 
-###At least one admission from a nursing home in the last year
+###At least one discharge to a nursing home
 pos_urines <- pos_urines %>% 
-  prev_event_type_assign(pNH,hadm,discharge_location,"NURSING",365,1) %>%
+  prev_event_type_assign(pNH,hadm,discharge_location,"NURSING",1e4,1) %>%
   ungroup()
 
 ###Male patient
@@ -358,8 +396,17 @@ proc_codes <- c("0", "3", "8", "5", "T", "4", "S", "A", "9",
                      "H", "I", "B", "7", "G", "1", "R", "J", "Q", 
                      "K", "6", "M", "P", "L", "D", "F", "2", "N", 
                      "C", "E", "X", "O")
-pos_urines <- pos_urines %>% prev_ICD_applier(diagnoses,"pPROC_",proc_codes)
+pos_urines <- pos_urines %>% prev_ICD_applier(procedures,"pPROC_",proc_codes)
 
+###At least 2 coded previous UTI diagnoses
+uti_key <-d_icd_diagnoses %>% filter(grepl("urinary tract infection",long_title,ignore.case=T) |
+                                       grepl("acute pyelon",long_title,ignore.case=T) |
+                                       (grepl("urinary catheter",long_title,ignore.case=T) & 
+                                          grepl("infec",long_title,ignore.case=T)))
+hadm_key <- hadm %>% select(hadm_id,admittime)
+uti_df <- diagnoses_raw %>% left_join(uti_key,by=c("icd_code","icd_version")) %>% 
+  filter(!is.na(long_title)) %>% left_join(hadm_key,by="hadm_id")
+pos_urines <- pos_urines %>% care_event_assigner(uti_df,"(urin|pyelo|cath)",long_title,p2UTI,"admittime",1e4,2)
 
 ###Presence of an outpatient provider ID
 pos_urines <- pos_urines %>% mutate(provider_id = case_when(order_provider_id!="" ~ TRUE,
@@ -404,21 +451,21 @@ pos_urines <- pos_urines %>% mutate(ordertime=chartdate) %>%
 
 ###Other specific previous care events
 pos_urines <- pos_urines %>% 
-  care_event_assigner("Catheter",field_value,pCATH,28) %>%  ###At least one urinary catheter insertion in the last 28 days
-  care_event_assigner("DNR",field_value,pDNR,365) %>% ###At least one 'do not resuscitate' order in the last year
-  care_event_assigner("Discharge",field_value,pDISC,28) %>% ###At least one discharge from hospital in the last 28 days
-  care_event_assigner("ICU",field_value,pICU,28) %>% ###At least one intensive care admission in the last 28 days
-  care_event_assigner("Psychiatry",field_value,pPsych,365) %>% ###At least one psychiatry review in the last year
-  care_event_assigner("Nephrostomy",field_value,pNeph,365) %>% ###At least one nephrostomy insertion in the last year
-  care_event_assigner("Surgery",field_value,pSURG,365) %>% ###At least one surgical procedure in the last year
-  care_event_assigner("Hydration",field_value,pHyd,28) %>% ###At least one hydration order in the last 28 days
-  care_event_assigner("NGT",field_value,pNGT,28) %>% ###At least one nasogastric tube insertion in the last 28 days
-  care_event_assigner("Chemo",field_value,pChemo,28) %>%  ###At least one administration of cancer chemotherapy in the last 28 days
-  care_event_assigner("Nutrition consult",order_subtype,pNUTR,365) %>%  ###At least one nutrition consultation in the last year
-  care_event_assigner("Physical Therapy",order_subtype,pPhysio,365) %>% ###At least one physiotherapy consultation in the last year
-  care_event_assigner("Restraints",order_subtype,pRestr,365) %>% ###At least one requirement for restraints in the last year
-  care_event_assigner("Occupational Therapy",order_subtype,pOT,365) %>% ###At least one occupational therapy consultation in the last year
-  care_event_assigner("Central TPN",order_subtype,pTPN,365) ###At least one administration of total parenteral nutrition in the last year
+  care_event_assigner(poe,"cath",field_value,pCATH,"ordertime",28) %>%  ###At least one urinary catheter insertion in the last 28 days
+  care_event_assigner(poe,"DNR",field_value,pDNR,"ordertime",365) %>% ###At least one 'do not resuscitate' order in the last year
+  care_event_assigner(poe,"Discharge",field_value,pDISC,"ordertime",28) %>% ###At least one discharge from hospital in the last 28 days
+  care_event_assigner(poe,"ICU",field_value,pICU,"ordertime",28) %>% ###At least one intensive care admission in the last 28 days
+  care_event_assigner(poe,"Psychiatry",field_value,pPsych,"ordertime",365) %>% ###At least one psychiatry review in the last year
+  care_event_assigner(poe,"Nephrostomy",field_value,pNeph,"ordertime",365) %>% ###At least one nephrostomy insertion in the last year
+  care_event_assigner(poe,"Surgery",field_value,pSURG,"ordertime",365) %>% ###At least one surgical procedure in the last year
+  care_event_assigner(poe,"Hydration",field_value,pHyd,"ordertime",28) %>% ###At least one hydration order in the last 28 days
+  care_event_assigner(poe,"NGT",field_value,pNGT,"ordertime",28) %>% ###At least one nasogastric tube insertion in the last 28 days
+  care_event_assigner(poe,"Chemo",field_value,pChemo,"ordertime",28) %>%  ###At least one administration of cancer chemotherapy in the last 28 days
+  care_event_assigner(poe,"Nutrition consult",order_subtype,pNUTR,"ordertime",365) %>%  ###At least one nutrition consultation in the last year
+  care_event_assigner(poe,"Physical Therapy",order_subtype,pPhysio,"ordertime",365) %>% ###At least one physiotherapy consultation in the last year
+  care_event_assigner(poe,"Restraints",order_subtype,pRestr,"ordertime",365) %>% ###At least one requirement for restraints in the last year
+  care_event_assigner(poe,"Occupational Therapy",order_subtype,pOT,"ordertime",365) %>% ###At least one occupational therapy consultation in the last year
+  care_event_assigner(poe,"Central TPN",order_subtype,pTPN,"ordertime",365) ###At least one administration of total parenteral nutrition in the last year
 
 ##Name of organism grown (for specimen pathway sensitivity analysis)
 
@@ -426,5 +473,5 @@ recipethis <- recipe(~org_fullname,data=pos_urines)
 dummies <- recipethis %>% step_dummy(org_fullname) %>% prep(training = pos_urines)
 dummy_data <- bake(dummies,new_data = NULL)
 pos_urines <- pos_urines %>% cbind(dummy_data) %>% tibble()
-write_csv(pos_urines,"pos_urine_w_features")
+write_csv(pos_urines,"pos_urines_w_features")
 
