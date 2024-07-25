@@ -53,4 +53,5 @@ To reproduce the specimen result clinical contextual analysis:
 To run the prototype application:  
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.  
 
-*This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running the **PDAST_microsimulation.R*** code up to the point that reticulate is used, running the **Prediction_run.py** file in *Python*, then running the remainder of **PDAST_microsimulation.R***. Remember to substitute in your local directory filepath in place of #FILEPATH#.
+*
+This script uses the *Reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running the **PDAST_microsimulation.R*** code up to the point that reticulate is used, running the **Prediction_run.py** file in *Python*, then running the remainder of **PDAST_microsimulation.R***. Remember to substitute in your local directory filepath in place of #FILEPATH#.
