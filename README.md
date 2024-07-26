@@ -36,6 +36,7 @@ To reproduce the main model validation, microsimulation study, fairness analysis
 To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available:  
 2. Run **UDAST_train_test_org_id.py**  
 3. Run **UDAST_train_test_AST.py**  
+4. Run **PDAST_lab_pathway.R**
 
 To reproduce the analysis where all 'I' results are reclassified as 'R':  
 2. Run **UDAST_train_test_I-R.py**  
