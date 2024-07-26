@@ -20,7 +20,7 @@ Before running the code, the data and *Python* files should be saved into a secu
 
 ***Reproducing the study***
 
-1. To reproduce the study, the following scripts must be run first:  
+1. To reproduce the study, all scripts above must be stored in the working directory. The following scripts must be run first:  
    a. **PDAST_packages&settings.R**
    b. **PDAST_cleaning.R**  
    c. **PDAST_feature_engineering.R**  
