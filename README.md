@@ -21,10 +21,11 @@ Before running the code, the data and *Python* files should be saved into a secu
 ***Reproducing the study***
 
 1. To reproduce the study, the following scripts must be run first:  
-   a. **PDAST_cleaning.R**  
-   b. **PDAST_feature_engineering**  
-   c. **PDAST_preprocessing**  
-   d. **Imports & functions.py**  
+   a. **PDAST_packages&settings.R**
+   b. **PDAST_cleaning.R**  
+   c. **PDAST_feature_engineering.R**  
+   d. **PDAST_preprocessing.R**  
+   e. **Imports & functions.py**  
 
 Then, for the subsequent analyses:
 
@@ -39,7 +40,7 @@ To reproduce the model validation sensitivity analysis where organism identifica
 4. Run **PDAST_lab_pathway.R**
 
 To reproduce the analysis where all 'I' results are reclassified as 'R':  
-2. Run **UDAST_train_test_I-R.py**  
+2. Run **UDAST_train_test_I-R.R.py**  
 3. Run **PDAST_microsim_I_sensitivity.R***  
 
 To reproduce the multinomial model validation sensitivity analysis:  
