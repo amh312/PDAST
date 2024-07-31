@@ -26,6 +26,7 @@ overallfairF = {}
 vari_set = {}
 intercept_set = {}
 coef_set = {}
+names_set = {}
 aucrocs = {}
 
 ##Main model development, fairness analysis, and stability analysis
@@ -55,16 +56,18 @@ for antimicrobial in list(range(0, len(drops), 1)):
 ##Compiling and exporting results
 
 ###Main analysis coefficients
-for antimicrobial in list(range(0, len(drops), 1)):
+urines5.to_csv("urines_coef_df.csv",index=False)
 
+for antimicrobial in list(range(0, len(drops), 1)):
     with open(lc_abs[antimicrobial]+"file.pickle", 'rb') as f:
         vari_list = pickle.load(f)
     with open(lc_abs[antimicrobial]+"fits.pickle", 'rb') as f:
         model_dict = pickle.load(f)
-
-    vari_set[drops[antimicrobial]] = vari_list
-    intercept_set[drops[antimicrobial]] = model_dict.intercept_
-    coef_set[drops[antimicrobial]] = model_dict.coef_[0]
+    df1 = pd.DataFrame({'Parameter': 'Intercept','Value': np.round(model_dict.intercept_,3)})
+    df2 = pd.DataFrame({'Parameter': vari_list,'Value': np.round(model_dict.coef_[0],3)})
+    df2 = df2.sort_values(by='Value', ascending=False)
+    df = pd.concat([df1, df2], ignore_index=True)
+    df.to_csv(drops[antimicrobial]+'_coef_list.csv',index=False)
 
 ###Main analysis performance metrics
 metrics_df = result_compiler(class_reps,"main_analysis_metrics.csv")
