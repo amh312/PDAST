@@ -291,7 +291,7 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
     geom_text(x=3.5,y=6.75,label=glue("{right_label}"),color="#3C3C3C",size=4)
   
   ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = df_plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   df_plot
   
@@ -382,7 +382,7 @@ rpp_plot <- function(df,standard_column,agents,save_as) {
           plot.margin = unit(c(1, 1, 1, 1), "cm"))
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
@@ -407,7 +407,7 @@ pwr_plot <- function(df,standard_column,agents,save_as) {
           plot.margin = unit(c(1,1,1,1),"cm"))
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
@@ -637,7 +637,7 @@ write_csv(performance_results,"peformance_results.csv")
 
 ###Set conda environment for reticulate and load python packages/functions
 reticulate::use_condaenv("CPE")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Imports & functions.py")
+reticulate::source_python("#FILEPATH#//Imports & functions.py")
 
 ###Assign datasets for microsimulation and probability predictions
 urines_aware <- read_csv("urines_assess.csv")
@@ -645,7 +645,7 @@ daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_sp
 write_csv(daily_urines,"daily_urines.csv")
 
 ###Make probability predictions
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Prediction_run.py")
+reticulate::source_python("#FILEPATH#//Prediction_run.py")
 
 ###Filter out vanomycin (not used in final analysis)
 probs_df_overall <- read_csv("probs_df_overall.csv")
@@ -827,7 +827,7 @@ s_results_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
     colour = axiscols))
 
 ggsave("s_results_by_ab.pdf", plot = s_results_by_ab, device = "pdf", width = 10, height = 4,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+       path="#FILEPATH#")
 
 ##Decision threshold sensitivity analysis
 
