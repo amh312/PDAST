@@ -2,21 +2,21 @@
 
 ##Dataset load-in
 
-micro <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/micro_clean2.csv")
-drugs <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/drugs_clean.csv")
-pats <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/patients.csv")
-hadm <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/admissions.csv")
-diagnoses <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/diagnoses_clean.csv")
-procedures <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/procedures_clean.csv")
-crp <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/crp.csv")
-wcc <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/wcc.csv")
-poe <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/poe_clean.csv")
-omr <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/omr.csv")
-services <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/services.csv")
+micro <- read_csv("#FILEPATH#/micro_clean2.csv")
+drugs <- read_csv("#FILEPATH#/drugs_clean.csv")
+pats <- read_csv("#FILEPATH#/patients.csv")
+hadm <- read_csv("#FILEPATH#/admissions.csv")
+diagnoses <- read_csv("#FILEPATH#/diagnoses_clean.csv")
+procedures <- read_csv("#FILEPATH#/procedures_clean.csv")
+crp <- read_csv("#FILEPATH#/crp.csv")
+wcc <- read_csv("#FILEPATH#/wcc.csv")
+poe <- read_csv("#FILEPATH#/poe_clean.csv")
+omr <- read_csv("#FILEPATH#/omr.csv")
+services <- read_csv("#FILEPATH#/services.csv")
 
 ##Random selection of subset of demonstration data
-urines_aware <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/urines_assess.csv")
-session_urines <- readr::read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/microbiologyevents.csv")
+urines_aware <- read_csv("#FILEPATH#/urines_assess.csv")
+session_urines <- readr::read_csv("#FILEPATH#/microbiologyevents.csv")
 session_urines <- semi_join(session_urines,urines_aware,by="micro_specimen_id")
 session_urines <- session_urines %>% filter(test_name=="URINE CULTURE") %>% 
   filter(!is.na(org_name))
@@ -28,7 +28,7 @@ row_end <- row_start + 100
 session_urines <- session_urines %>% filter(!is.na(charttime)) %>% 
   arrange(micro_specimen_id) %>% 
   slice(row_start:row_end) %>% distinct(subject_id,micro_specimen_id,charttime,.keep_all =T)
-write_csv(session_urines,"/Users/alexhoward/Documents/Projects/UDAST_code/session_urines.csv")
+write_csv(session_urines,"#FILEPATH#/session_urines.csv")
 
 ##Functions
 
@@ -254,12 +254,12 @@ server <- function(input, output) {
       urines_to_test <- read.csv(input$file$datapath)
       
       ###Set working directory
-      setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-      path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
+      setwd("#FILEPATH#")
+      path_to_data <- "#FILEPATH#"
       
       ###Load Python packages
       reticulate::use_condaenv("CPE")
-      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Imports & functions.py")
+      reticulate::source_python("#FILEPATH#/Imports & functions.py")
       
       ###Filter datasets to match urine testing session patients
       obs <- poe %>% filter(order_subtype=="Vitals/Monitoring")
@@ -794,7 +794,7 @@ server <- function(input, output) {
       write_csv(daily_urines,"daily_urines.csv")
       
       ###Run probability prediction script in Python
-      reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code/Prediction_run.py")
+      reticulate::source_python("#FILEPATH#/Prediction_run.py")
       updateSelectInput(inputId = "specimen_id",choices=urines_to_test %>%
                           select(micro_specimen_id) %>% arrange(micro_specimen_id))
       
