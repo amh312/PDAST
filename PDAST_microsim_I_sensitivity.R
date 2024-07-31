@@ -1,17 +1,29 @@
 #MICROSIMULATION SENSITIVITY ANALYSIS (I RECLASSIFIED AS R)
 
-##Packages
-
-library("AMR")
-library("tidyverse")
-library("DescTools")
-library("devtools")
-library("brms")
-library("glue")
-library("coin")
-library("rlang")
-
 ##Functions
+
+###Generic previous event assignment function
+aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
+  df %>% filter(micro_specimen_id==spec_id) %>%
+    mutate(aware_utility = case_when(
+      as.ab(Antimicrobial)=="AMP" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="SAM" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="TZP" ~ (S),
+      as.ab(Antimicrobial)=="CZO" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="CRO" ~(S),
+      as.ab(Antimicrobial)=="CAZ" ~(S),
+      as.ab(Antimicrobial)=="FEP" ~(S),
+      as.ab(Antimicrobial)=="MEM" ~(S),
+      as.ab(Antimicrobial)=="CIP" ~(S),
+      as.ab(Antimicrobial)=="GEN" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="SXT" & (S) > acs_cutoff ~ 1+S,
+      as.ab(Antimicrobial)=="NIT" & (S) > acs_cutoff ~ 1+S,
+      TRUE ~ 0)) %>% 
+    arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
+    mutate(aware_utility = round(aware_utility,1)) %>% slice(1:panel_size) %>% 
+    rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
+  
+}
 
 ###Assigning personalised recommendations to dataframe
 assign_PDAST <- function(df,probab_df,decision_threshold,method_used) {
@@ -220,6 +232,57 @@ minuser <- function(df,abx) {
   
 }
 
+###Dataframe assembler for dot plot
+create_df <- function(df, col_name, aware_result, panel) {
+  result <- df %>%
+    select({{ col_name }}) %>%
+    cbind(AWaRe_results = aware_result, Panel = panel) %>%
+    as.data.frame()
+  colnames(result) <- c("n", "AWaRe_results", "Panel")
+  return(result)
+}
+
+###Main dot plot of all Sresults and WHO Access S results
+i_main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
+                            left_label,right_label,sens_addendum="") {
+  
+  plot_df <- df %>% filter(grepl(pdast_1,AWaRe_results) |
+                             grepl(standard_1,AWaRe_results) |
+                             grepl(pdast_2,AWaRe_results) |
+                             grepl(standard_2,AWaRe_results) )
+  
+  plot_df$AWaRe_results <- factor(plot_df$AWaRe_results,levels = c(pdast_1,
+                                                                   standard_1,
+                                                                   pdast_2,
+                                                                   standard_2))
+  
+  df_plot <- ggplot(plot_df,aes(x=AWaRe_results,y=n,color=Approach)) +
+    geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
+    stat_summary(geom="point",fun="median",size=4)+
+    geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
+    ylab("")+
+    ggtitle(glue("Microsimulation study:\nNumber of susceptible results provided per specimen\n{(sens_addendum)}")) +
+    theme(axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_text(vjust=3),
+          plot.margin = unit(c(0.1,0.1,0.1,0.25),"inches"),
+          plot.title = element_text(hjust=0.5),
+          panel.grid.minor.y = element_blank(),
+          panel.grid.major.x = element_blank())+
+    geom_vline(xintercept = 2.5,linetype="dashed",color="grey") +
+    scale_y_continuous(limits = c(-0.15,7),breaks=c(0:6)) +
+    scale_color_manual(values=c("#00BFC4","#F8766D"))+
+    geom_text(x=1.5,y=6.75,label=glue("{left_label}"),color="#3C3C3C",size=4) +
+    geom_text(x=3.5,y=6.75,label=glue("{right_label}"),color="#3C3C3C",size=4)
+  
+  ggsave(glue("i_{left_label}_{right_label}_plot.pdf"), plot = df_plot, device = "pdf", width = 6, height = 6,
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+  
+  df_plot
+  
+}
+
 ###Tests of statistical significance for Access and all susceptible results
 stats_reporter <- function(df, personalised_col_acs, personalised_col_all, standard_col_acs, standard_col_all) {
   personalised_col_acs <- enquo(personalised_col_acs)
@@ -294,7 +357,7 @@ rpp_plot_ItoR <- function(df,standard_column,agents,save_as) {
     scale_color_manual(values = "#00BFC4") +
     scale_fill_manual(values = "#00BFC4") +
     ylim(c(0, 6)) +
-    ggtitle(glue("PDAST results-per-panel sensitivity analysis for {agents} agents:\nThe effect of varying the susceptibility probability threshold\nfor Access agent testing\n('I' results reclassified as R)")) +
+    ggtitle(glue("PDAST results-per-panel sensitivity analysis for {agents}\nagents: The effect of varying the susceptibility probability\nthreshold for Access agent testing\n('I' results reclassified as R)")) +
     xlab("Minimum probability threshold to test Access agent") +
     ylab(glue("Median number of susceptible\nresults for {agents} agents per specimen")) +
     geom_hline(yintercept = hline_yintercept, linetype = "dashed", color = "#F8766D") +
@@ -336,6 +399,27 @@ pwr_plot_ItoR <- function(df,standard_column,agents,save_as) {
   
 }
 
+##Model performance check
+
+###Rearrange and display model validation results
+metrics_df <- read_csv("i_main_analysis_metrics.csv") %>% 
+  rename(`Antimicrobial agent`="Model",Result="Metric") %>% mutate(
+    `Sub-metric` = case_when(is.na(`Sub-metric`)~"Accuracy",TRUE~`Sub-metric`),
+    `Sub-metric` = str_to_title(`Sub-metric`)) %>% 
+  pivot_wider(names_from=`Sub-metric`,values_from=Score)
+accuracy_vec = metrics_df %>% select(Accuracy) %>% filter(!is.na(Accuracy)) %>% unlist()
+metrics_df[14:26,7] <- accuracy_vec
+metrics_df <- metrics_df %>% slice(1:26)
+performance_results <- data.frame(matrix(ncol = ncol(metrics_df),nrow = 0))
+for (i in 1:13) {
+  s_val <- metrics_df[i,]
+  r_val <- metrics_df[i+13,]
+  performance_results <- tibble(rbind(performance_results,r_val,s_val))
+}
+performance_results <- performance_results %>% relocate(Support,.after="Accuracy")
+print(performance_results)
+write_csv(performance_results,"i_peformance_results.csv")
+
 ##Preprocessing
 
 ###Set conda environment for reticulate and load python packages/functions
@@ -348,11 +432,11 @@ daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_sp
 write_csv(daily_urines,"daily_urines.csv")
 
 ###Make probability predictions
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Prediction_run.py")
+reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//i_Prediction_run.py")
 
 ###Filter out vanomycin (not used in final analysis)
-probs_df_overall <- read_csv("probs_df_overall.csv")
-probs_df_overall <- probs_df_overall %>% filter(Antimicrobial!="Vancomycin") %>% 
+i_probs_df_overall <- read_csv("i_probs_df_overall.csv")
+i_probs_df_overall <- i_probs_df_overall %>% filter(Antimicrobial!="Vancomycin") %>% 
   mutate(I = case_when(is.na(I) ~ 0, TRUE~ I))
 
 ###Assign lists to be used for reference in functions
@@ -369,11 +453,11 @@ watch_abs <- c("TZP","CRO","CAZ",
 micro_raw <- read_csv("microbiologyevents.csv")
 
 ###Add aware utility-based antimicrobial rankings to microsimulation dataset
-urines_aware <- urines_aware %>% assign_PDAST(probs_df_overall,0.5,"PDAST_") %>%
+urines_aware <- urines_aware %>% assign_PDAST(i_probs_df_overall,0.5,"PDAST_") %>%
   mutate(across(PDAST_1:PDAST_12,as.ab))
 
 ###Add standard panel antimicrobial rankings to microsimulation dataset
-urines_aware <- urines_aware %>% assign_standard(probs_df_overall,micro_raw,"STANDARD_")
+urines_aware <- urines_aware %>% assign_standard(i_probs_df_overall,micro_raw,"STANDARD_")
 
 ##Number of results per panel analysis
 
@@ -381,7 +465,7 @@ urines_aware <- urines_aware %>% assign_standard(probs_df_overall,micro_raw,"STA
 urines_aware$n_allS_PDAST6 <- urines_aware %>% number_S_pdast(all_abs)
 
 ###Total number of R results provided by personalised panel
-urines_aware$n_allR_standard6 <- urines_aware %>% number_RorI_pdast(all_abs)
+urines_aware$n_allR_PDAST6 <- urines_aware %>% number_RorI_pdast(all_abs)
 
 ###Number of Access category S or I results provided by personalised panel
 urines_aware$n_acS_PDAST6 <- urines_aware %>% number_S_pdast(access_abs)
@@ -417,52 +501,42 @@ urines_aware$n_waR_standard6 <- urines_aware %>% number_RorI_standard(watch_abs)
 write_csv(urines_aware,"i_urines_aware_no_van.csv")
 
 ###Assemble data frame for dot plot data visualisation
-create_df <- function(df, col_name, aware_result, panel) {
-  result <- df %>%
-    select({{ col_name }}) %>%
-    cbind(AWaRe_results = aware_result, Panel = panel) %>%
-    as.data.frame()
-  colnames(result) <- c("n", "AWaRe_results", "Panel")
-  return(result)
-}
 acs_PDAST6 <- create_df(urines_aware, n_acS_PDAST6, "PDAST\nAccess S", "PDAST")
 acs_standard6 <- create_df(urines_aware, n_acS_standard6, "Standard\nAccess S", "Standard")
+was_PDAST6 <- create_df(urines_aware, n_waS_PDAST6, "PDAST\nWatch S", "PDAST")
+was_standard6 <- create_df(urines_aware, n_waS_standard6, "Standard\nWatch S", "Standard")
 all_PDAST6 <- create_df(urines_aware, n_allS_PDAST6, "PDAST\nAll S", "PDAST")
 all_standard6 <- create_df(urines_aware, n_allS_standard6, "Standard\nAll S", "Standard")
-acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,all_PDAST6,all_standard6))
+acr_PDAST6 <- create_df(urines_aware, n_acR_PDAST6, "PDAST\nAccess R", "PDAST")
+acr_standard6 <- create_df(urines_aware, n_acR_standard6, "Standard\nAccess R", "Standard")
+war_PDAST6 <- create_df(urines_aware, n_waR_PDAST6, "PDAST\nWatch R", "PDAST")
+war_standard6 <- create_df(urines_aware, n_waR_standard6, "Standard\nWatch R", "Standard")
+allr_PDAST6 <- create_df(urines_aware, n_allR_PDAST6, "PDAST\nAll R", "PDAST")
+allr_standard6 <- create_df(urines_aware, n_allR_standard6, "Standard\nAll R", "Standard")
+acs_df %>% count(AWaRe_results)
+acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,
+                           was_PDAST6,was_standard6,
+                           all_PDAST6,all_standard6,
+                           acr_PDAST6,acr_standard6,
+                           war_PDAST6,war_standard6,
+                           allr_PDAST6,allr_standard6))
 acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
                                                         iqr_max=quantile(n)[4]) %>% 
   ungroup() %>% 
   mutate(iqr_min=case_when(iqr_min<0 ~ 0,TRUE~iqr_min))
-acs_df$AWaRe_results <- factor(acs_df$AWaRe_results,levels = c("PDAST\nAll S",
-                                                               "Standard\nAll S",
-                                                               "PDAST\nAccess S",
-                                                               "Standard\nAccess S"))
 acs_df <- acs_df %>% rename(Approach="Panel")
 
-###Dot plot of number of all S results and Access S results per panel
-i_sens_aware_plot <- ggplot(acs_df,aes(x=AWaRe_results,y=n,color=Approach)) +
-  geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
-  stat_summary(geom="point",fun="median",size=4)+
-  geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
-  ylab("")+
-  ggtitle("Microsimulation study:\nNumber of susceptible results provided per specimen\n('I' results reclassified as R)") +
-  theme(axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(vjust=3),
-        plot.margin = unit(c(0.1,0.1,0.1,0.25),"inches"),
-        plot.title = element_text(hjust=0.5),
-        panel.grid.minor.y = element_blank(),
-        panel.grid.major.x = element_blank())+
-  geom_vline(xintercept = 2.5,linetype="dashed",color="grey") +
-  scale_y_continuous(limits = c(-0.15,7),breaks=c(0:6)) +
-  scale_color_manual(values=c("#00BFC4","#F8766D"))+
-  geom_text(x=1.5,y=6.75,label="All agents",color="#3C3C3C",size=4) +
-  geom_text(x=3.5,y=6.75,label="WHO Access agents",color="#3C3C3C",size=4)
+###Main dot plot of number of all S results and Access S results per panel
+i_main_aware_plot <- acs_df %>% i_main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
+                                              "All agents","WHO access agents","(I-R sensitivity analysis)")
 
-ggsave("i_sens_aware_plot.pdf", plot = i_sens_aware_plot, device = "pdf", width = 6, height = 6,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+###Dot plot of number of all R results and Access R results per panel
+i_accessr_aware_plot <- acs_df %>% i_main_dotplotter("PDAST\nAll R","Standard\nAll R","PDAST\nAccess R","Standard\nAccess R",
+                                                 "All agents (R)","WHO access agents (R)","(I-R sensitivity analysis)")
+
+###Dot plot of number of Watch S results and Watch R results per panel
+watch_plot <- acs_df %>% i_main_dotplotter("PDAST\nWatch S","Standard\nWatch S","PDAST\nWatch R","Standard\nWatch R",
+                                         "WHO watch agents (S)","WHO watch agents (R)","(I-R sensitivity analysis)")
 
 ###Tests of statistical significance for Access and all susceptible results
 urines_aware %>% stats_reporter(n_acS_PDAST6, n_allS_PDAST6, n_acS_standard6, n_allS_standard6)
@@ -571,45 +645,45 @@ cutoffseq <- c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9)
 for (j in cutoffseq) {
   
   ur_aware_sens <- urines_aware %>% select(-(PDAST_1:PDAST_12))  
-  ur_aware_sens <- ur_aware_sens %>% assign_PDAST(probs_df_overall,j,"PDAST_") %>%
+  ur_aware_sens <- ur_aware_sens %>% assign_PDAST(i_probs_df_overall,j,"PDAST_") %>%
     mutate(across(PDAST_1:PDAST_12,as.ab))
   
-  n_all_s <- ur_aware_sens %>% number_SorI_pdast(all_abs)
+  n_all_s <- ur_aware_sens %>% number_S_pdast(all_abs)
   print(glue("median all S for PDAST in run {j} = {median(n_all_s)}"))
   all_s_medians <- append(all_s_medians,median(n_all_s))
   all_s_iqr25 <- append(all_s_iqr25,quantile(n_all_s)[2])
   all_s_iqr75 <- append(all_s_iqr75,quantile(n_all_s)[4])
   all_s_n_0s <- append(all_s_n_0s,sum(n_all_s ==0))
   
-  n_all_r <- ur_aware_sens %>% number_R_pdast(all_abs)
+  n_all_r <- ur_aware_sens %>% number_RorI_pdast(all_abs)
   print(glue("median all R for PDAST in run {j} = {median(n_all_r)}"))
   all_r_medians <- append(all_r_medians,median(n_all_r))
   all_r_iqr25 <- append(all_r_iqr25,quantile(n_all_r)[2])
   all_r_iqr75 <- append(all_r_iqr75,quantile(n_all_r)[4])
   all_r_n_0s <- append(all_r_n_0s,sum(n_all_r ==0))
   
-  n_access_s <- ur_aware_sens %>% number_SorI_pdast(access_abs)
+  n_access_s <- ur_aware_sens %>% number_S_pdast(access_abs)
   print(glue("median Access S for PDAST in run {j} = {median(n_access_s)}"))
   access_s_medians <- append(access_s_medians,median(n_access_s))
   access_s_iqr25 <- append(access_s_iqr25,quantile(n_access_s)[2])
   access_s_iqr75 <- append(access_s_iqr75,quantile(n_access_s)[4])
   access_s_n_0s <- append(access_s_n_0s,sum(n_access_s ==0))
   
-  n_access_r <- ur_aware_sens %>% number_R_pdast(access_abs)
+  n_access_r <- ur_aware_sens %>% number_RorI_pdast(access_abs)
   print(glue("median Access R for PDAST in run {j} = {median(n_access_r)}"))
   access_r_medians <- append(access_r_medians,median(n_access_r))
   access_r_iqr25 <- append(access_r_iqr25,quantile(n_access_r)[2])
   access_r_iqr75 <- append(access_r_iqr75,quantile(n_access_r)[4])
   access_r_n_0s <- append(access_r_n_0s,sum(n_access_r ==0))
   
-  n_watch_s <- ur_aware_sens %>% number_SorI_pdast(watch_abs)
+  n_watch_s <- ur_aware_sens %>% number_S_pdast(watch_abs)
   print(glue("median Watch S for PDAST in run {j} = {median(n_watch_s)}"))
   watch_s_medians <- append(watch_s_medians,median(n_watch_s))
   watch_s_iqr25 <- append(watch_s_iqr25,quantile(n_watch_s)[2])
   watch_s_iqr75 <- append(watch_s_iqr75,quantile(n_watch_s)[4])
   watch_s_n_0s <- append(watch_s_n_0s,sum(n_watch_s ==0))
   
-  n_watch_r <- ur_aware_sens %>% number_R_standard(watch_abs)
+  n_watch_r <- ur_aware_sens %>% number_RorI_standard(watch_abs)
   print(glue("median Watch R for PDAST in run {j} = {median(n_watch_r)}"))
   watch_r_medians <- append(watch_r_medians,median(n_watch_r))
   watch_r_iqr25 <- append(watch_r_iqr25,quantile(n_watch_r)[2])
@@ -645,12 +719,12 @@ sens_mediansplot_all <- sens_mediansplot_df %>% filter(PDAST=="All S/I")
 sens_mediansplot_access <- sens_mediansplot_df %>% filter(PDAST=="Access S/I")
 
 ###Results-per-panel sensitivity analysis for all agents
-rpp_all_plot <- sens_mediansplot_all %>% 
-  rpp_plot_ItoR(urines_aware$n_allS_standard6,"all","i_rpp_all_plot.csv")
+i_rpp_all_plot <- sens_mediansplot_all %>% 
+  rpp_plot_ItoR(urines_aware$n_allS_standard6,"all","i_rpp_all_plot.pdf")
 
 ###Results-per-panel sensitivity analysis for Access category agents
-rpp_access_plot <- sens_mediansplot_access %>% 
-  rpp_plot_ItoR(urines_aware$n_acS_standard6,"Access","i_rpp_access_plot.csv")
+i_rpp_access_plot <- sens_mediansplot_access %>% 
+  rpp_plot_ItoR(urines_aware$n_acS_standard6,"Access","i_rpp_access_plot.pdf")
 
 ###Assemble sensitivity analysis data frame for results-per-panel data visualisation
 sens_zeroplot_df <- data.frame(rbind(
@@ -665,74 +739,14 @@ sens_zeroplot_all <- sens_zeroplot_df %>% filter(PDAST=="All S/I")
 sens_zeroplot_access <- sens_zeroplot_df %>% filter(PDAST=="Access S/I")
 
 ###Panels-without-results sensitivity analysis for all agents
-pwr_all_plot <- sens_zeroplot_all %>% 
+i_pwr_all_plot <- sens_zeroplot_all %>% 
   pwr_plot_ItoR(urines_aware$n_allS_standard6,"all","i_sens_pwr_all_plot.pdf")
 
 ###Panels-without-results sensitivity analysis for Access category agents
-pwr_access_plot <- sens_zeroplot_access %>% 
+i_pwr_access_plot <- sens_zeroplot_access %>% 
   pwr_plot_ItoR(urines_aware$n_acS_standard6,"Access","i_sens_pwr_access_plot.pdf")
 
-###Panels-without-results sensitivity analysis for Access category agents
-i_sens_pwr_access_plot <- ggplot(sens_zeroplot_access,aes(x=cutoffseq)) +
-  geom_line(aes(y=100-as.numeric(zeroval),group=PDAST,color=PDAST))+
-  ylim(c(0,100)) +
-  ggtitle("PDAST at-least-one susceptible result sensitivity\nanalysis (WHO Access agents): The effect of varying\nthe decision threshold for Access agent testing")+
-  xlab("Minimum probability threshold to test Access agent") +
-  ylab("Percentage of panels providing at least one\nsusceptible result for Access agents")+
-  scale_color_manual(values="#00BFC4")+
-  scale_x_discrete(expand = c(0,0))+
-  geom_hline(yintercept = (1-sum(urines_aware$n_acS_standard6==0)/nrow(urines_aware))*100,linetype="dashed",color="#F8766D")+
-  labs(tag = "Standard panel") +
-  theme(plot.tag.position = c(0.92, 1-0.175),
-        plot.tag = element_text(size = 6.5,color="#F8766D"),
-        legend.position="none",
-        plot.margin = unit(c(1,1,1,1),"cm"))
 
-ggsave("i_sens_pwr_access_plot.pdf", plot = i_sens_pwr_access_plot, device = "pdf", width = 6, height = 6,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
-
-##Aggregated race fairness observational subanalysis on microsimulation dataset
-
-ref_urines_aware <- pos_urines %>% mutate(charttime = as_datetime(charttime)) %>% 
-  semi_join(urines_aware,by="micro_specimen_id")
-ref_white <- ref_urines_aware %>% filter(grepl("WHITE",race))
-ref_nw <- ref_urines_aware %>% filter(!grepl("WHITE",race))
-probs_df_overall <- probs_df_overall %>% 
-  mutate(pred_res = 
-           case_when(I >= 0.5 ~ "I",
-                     R >= 0.5 ~ "R",
-                     S >= 0.5 ~ "S",
-                     NT >= 0.5 ~ "NT",
-                     TRUE ~ NA))
-accuracy_function <- function(df,probs_df,abx,ab_col) {
-  
-  ab_col = enquo(ab_col)
-  
-  pddf <- probs_df %>% filter(Antimicrobial == abx) %>% select(micro_specimen_id,pred_res) %>% 
-    right_join(df, by = "micro_specimen_id") %>% mutate(
-      TP = case_when(!!ab_col == "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
-      FP = case_when(!!ab_col != "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
-      TN = case_when(!!ab_col != "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE),
-      FN = case_when(!!ab_col == "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE)
-    )
-  
-  TP <- sum(pddf$TP)
-  FP <- sum(pddf$FP)
-  TN <- sum(pddf$TN)
-  FN <- sum(pddf$FN)
-  
-  (TP + TN) / (TP + TN + FP + FN)
-  
-}
-ablist <- ab_name(all_abs) %>% str_replace("/","-")
-for (i in 1:length(ablist)) {
-  
-  accdiff <- (accuracy_function(ref_white,probs_df_overall,ab_name(all_abs)[i],TZP) -
-                accuracy_function(ref_nw,probs_df_overall,ab_name(all_abs)[i],TZP))*100
-  
-  print(glue("Accuracy difference for {ab_name(all_abs)[i]}: {accdiff}"))
-  
-}
 
 
 
