@@ -29,10 +29,11 @@ Before running the code, the data and *Python* files should be saved into a secu
 
 Then, for the subsequent analyses:
 
-To reproduce the main model validation, microsimulation study, fairness analysis, and stability analysis:  
+To reproduce the main model validation, microsimulation study, fairness analysis, stability analysis, and contextual analysis:  
 2. Run **UDAST_train_test_main.py**  
 3. Run **PDAST_microsimulation.R***  
-4. Run **PDAST_stability.R**  
+4. Run **PDAST_stability.R**
+5. Run **PDAST_contextual_analysis.R**  
 
 To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available:  
 2. Run **UDAST_train_test_org_id.py**  
@@ -48,9 +49,6 @@ To reproduce the multinomial model validation sensitivity analysis:
 
 To reproduce the out-of-sample time cross validation sensitivity analysis:  
 2. Run **PDAST_time_sensitivity.R***  
-
-To reproduce the specimen result clinical contextual analysis:  
-2. Run **PDAST_contextual_analysis.R**  
 
 To run the prototype application:  
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.  
