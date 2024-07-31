@@ -40,7 +40,7 @@ To reproduce the model validation sensitivity analysis where organism identifica
 4. Run **PDAST_lab_pathway.R**
 
 To reproduce the analysis where all 'I' results are reclassified as 'R':  
-2. Run **UDAST_train_test_I-R.R.py**  
+2. Run **UDAST_train_test_I-R.py**  
 3. Run **PDAST_microsim_I_sensitivity.R***  
 
 To reproduce the multinomial model validation sensitivity analysis:  
