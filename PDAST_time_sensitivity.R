@@ -106,7 +106,7 @@ write_csv(ur_aware_t_4,"ur_aware_t_4.csv")
 
 ##Cross-validation across all time periods
 
-reticulate::use_condaenv("CPE")
+reticulate::use_condaenv("#CONDAENV_FILEPATH#")
 reticulate::source_python("#FILEPATH#//Imports & functions.py")
 reticulate::source_python("#FILEPATH#//UDAST_time.py")
 
