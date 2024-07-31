@@ -1,16 +1,4 @@
 #MICROSIMULATION PRIMARY ANALYSIS
-options(error=NULL)
-
-##Packages
-
-library("AMR")
-library("tidyverse")
-library("DescTools")
-library("devtools")
-library("brms")
-library("glue")
-library("coin")
-library("rlang")
 
 ##Functions
 
@@ -258,6 +246,16 @@ minuser <- function(df,abx) {
   
 }
 
+###Dataframe assembler for dot plot
+create_df <- function(df, col_name, aware_result, panel) {
+  result <- df %>%
+    select({{ col_name }}) %>%
+    cbind(AWaRe_results = aware_result, Panel = panel) %>%
+    as.data.frame()
+  colnames(result) <- c("n", "AWaRe_results", "Panel")
+  return(result)
+}
+
 ###Main dot plot of all Sresults and WHO Access S results
 main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
                             left_label,right_label,sens_addendum="") {
@@ -272,7 +270,7 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
                                                                    pdast_2,
                                                                    standard_2))
   
-  main_aware_plot <- ggplot(plot_df,aes(x=AWaRe_results,y=n,color=Approach)) +
+  df_plot <- ggplot(plot_df,aes(x=AWaRe_results,y=n,color=Approach)) +
     geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
     stat_summary(geom="point",fun="median",size=4)+
     geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
@@ -292,10 +290,10 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
     geom_text(x=1.5,y=6.75,label=glue("{left_label}"),color="#3C3C3C",size=4) +
     geom_text(x=3.5,y=6.75,label=glue("{right_label}"),color="#3C3C3C",size=4)
   
-  ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = main_aware_plot, device = "pdf", width = 6, height = 6,
+  ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = df_plot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  main_aware_plot
+  df_plot
   
 }
 
@@ -373,7 +371,7 @@ rpp_plot <- function(df,standard_column,agents,save_as) {
     scale_color_manual(values = "#00BFC4") +
     scale_fill_manual(values = "#00BFC4") +
     ylim(c(0, 6)) +
-    ggtitle(glue("PDAST results-per-panel sensitivity analysis for {agents} agents:\nThe effect of varying the susceptibility probability threshold\nfor Access agent testing")) +
+    ggtitle(glue("PDAST results-per-panel sensitivity analysis for {agents}\nagents: The effect of varying the susceptibility probability\nthreshold for Access agent testing")) +
     xlab("Minimum probability threshold to test Access agent") +
     ylab(glue("Median number of susceptible\nresults for {agents} agents per specimen")) +
     geom_hline(yintercept = hline_yintercept, linetype = "dashed", color = "#F8766D") +
@@ -415,6 +413,205 @@ pwr_plot <- function(df,standard_column,agents,save_as) {
   
 }
 
+###Accuracy function for fairness analysis
+accuracy_function <- function(df,probs_df,abx,ab_col) {
+  
+  ab_col = enquo(ab_col)
+  
+  pddf <- probs_df %>% filter(Antimicrobial == ab_name(abx)) %>% select(micro_specimen_id,pred_res) %>% 
+    right_join(df, by = "micro_specimen_id") %>% mutate(
+      TP = case_when(!!ab_col == "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
+      FP = case_when(!!ab_col != "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
+      TN = case_when(!!ab_col != "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE),
+      FN = case_when(!!ab_col == "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE)
+    )
+  
+  TP <- sum(pddf$TP)
+  FP <- sum(pddf$FP)
+  TN <- sum(pddf$TN)
+  FN <- sum(pddf$FN)
+  
+  (TP + TN) / (TP + TN + FP + FN)
+  
+}
+
+###Accuracy difference for fairness analysis
+accdiff <- function(df1,df2,ab,abx) {
+  
+  probs_df_overall <- probs_df_overall %>% mutate(
+    Antimicrobial = str_replace(Antimicrobial,"-","/")
+  )
+  
+  abx <- enquo(abx)
+  
+  print(paste0("White: ",accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx)*100))
+  
+  print(paste0("Non-white: ",accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx)*100))
+  
+  print(paste0("Difference: ",(accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx) -
+      accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100))
+  
+}
+
+###Populating model coefficient full names
+coef_keymaker <- function(reference_filename) {
+  
+  appender <- function(column_list,prefix,suffix,condition,timeframe) {
+    statement_list <- c()
+    for (i in 1:length(column_list)) {
+      col_name <- column_list[i]
+      cleaned_col_name <- col_name %>%
+        str_remove(regex(prefix, ignore_case = FALSE)) %>%
+        str_remove(regex(suffix, ignore_case = FALSE))
+      statement1 <- glue("{ab_name(cleaned_col_name)} {condition} in the last {timeframe}")
+      statement_list <- append(statement_list,statement1)
+    }
+    statement_list
+  }
+  appender2 <- function(column_list,prefix,suffix,condition,timeframe) {
+    statement_list <- c()
+    for (i in 1:length(column_list)) {
+      col_name <- column_list[i]
+      cleaned_col_name <- col_name %>%
+        str_remove(regex(prefix, ignore_case = FALSE)) %>%
+        str_remove(regex(suffix, ignore_case = FALSE))
+      statement1 <- glue("{cleaned_col_name} {condition} in the last {timeframe}")
+      statement_list <- append(statement_list,statement1)
+    }
+    statement_list
+  }
+  appender3 <- function(column_list,prefix,suffix,condition, detail) {
+    statement_list <- c()
+    for (i in 1:length(column_list)) {
+      col_name <- column_list[i]
+      cleaned_col_name <- col_name %>%
+        str_remove(regex(prefix, ignore_case = FALSE)) %>%
+        str_remove(regex(suffix, ignore_case = FALSE))
+      statement1 <- glue("{condition}: {cleaned_col_name}")
+      statement_list <- append(statement_list,statement1)
+    }
+    statement_list
+  }
+  
+  df <- read_csv(reference_filename) %>% select(-Y)
+  
+  ablist1 <- appender(df %>% select(pAMPr:pVANr) %>% colnames(),
+                      "p","r","resistance", "year")
+  ablist2 <- appender(df %>% select(pTCYr:pTOBr) %>% colnames(),
+                      "p","r","resistance", "year")
+  ablist3 <- appender(df %>% select(pAMP7dr:pVAN7dr) %>% colnames(),
+                      "p","7dr","resistance", "week")
+  ablist4 <- appender(df %>% select(pTCY7dr:pTOB7dr) %>% colnames(),
+                      "p","7dr","resistance", "week")
+  ablist5 <- appender(df %>% select(pAMPs:pVANs) %>% colnames(),
+                      "p","s","susceptibility","year")
+  ablist6 <- appender(df %>% select(pTCYs:pTOBs) %>% colnames(),
+                      "p","s","'I' result","year")
+  ablist7 <- appender(df %>% select(pAMPi:pTOBi) %>% colnames(),
+                      "p","i","'I' result","year")
+  ablist8 <- appender(df %>% select(pAMPnt:pPENnt) %>% colnames(),
+                      "p","nt","untested isolate","year")
+  ablist9 <- appender(df %>% select(pAMPrx:pDOXrx) %>% colnames(),
+                      "p","rx","treatment","year")
+  ablist10 <- appender(df %>% select(d7AMPrx:d7DOXrx) %>% colnames(),
+                       "d7","rx","treatment","week")
+  diaglist <- appender2(df %>% select(pDIAG_A:pDIAG_U) %>% colnames(),
+                        "pDIAG_","N/A","group ICD-10 diagnosis","year")
+  proclist <- appender2(df %>% select(pPROC_0:pPROC_O) %>% colnames(),
+                        "pPROC_","N/A","group ICD-10 procedure","year")
+  bmilist <- appender2(df %>% select(pObese:pOverweight) %>% colnames(),
+                       "p","N/A","BMI classification","3 years")
+  agelist <- appender3(df %>% select(standard_age_18:standard_age_90) %>% colnames(),
+                       "standard_age_","N/A","Age group")
+  racelist <- appender3(df %>% select(`race_AMERICAN INDIAN/ALASKA NATIVE`:`race_WHITE - RUSSIAN`) %>% colnames(),
+                        "race_","N/A","Race") %>% str_to_lower() %>% str_to_title()
+  marilist <- appender3(df %>% select(`marital_status_DIVORCED`:`marital_status_WIDOWED`) %>% colnames(),
+                        "marital_status_","N/A","Marital Status") %>% str_to_lower() %>% str_to_title()
+  inslist <- appender3(df %>% select(`insurance_Medicaid`:`insurance_UNKNOWN`) %>% colnames(),
+                       "insurance_","N/A","Insurance type") %>% str_to_lower() %>% str_to_title()
+  langlist <- appender3(df %>% select(`language_?`:`language_UNKNOWN`) %>% colnames(),
+                        "language_","N/A","Language") %>% str_to_lower() %>% str_to_title()
+  admlist <- appender3(df %>% select(`admission_location_AMBULATORY SURGERY TRANSFER`:`admission_location_WALK-IN/SELF REFERRAL`) %>% colnames(),
+                       "admission_location_","N/A","Admission Location") %>% str_to_lower() %>% str_to_title()
+  servlist <- appender3(df %>% select(`curr_service_CMED`:`curr_service_VSURG`) %>% colnames(),
+                        "curr_service_","N/A","Current Service") %>% str_to_lower() %>% str_to_title()
+  
+  parameter_key <- c(ablist1,"AmpC in the last year",ablist2,ablist3,
+                     "AmpC in the last week",ablist4,ablist5,
+                     "Non-AmpC in the last year",ablist6,ablist7,ablist8,
+                     ablist9,ablist10,"Raised C-reactive protein",
+                     "Abnormal peripheral white cell count",
+                     "Hospital admission in the last year",
+                     "Discharge to a nursing home in the last year",
+                     "Male", diaglist,proclist,"UTI in the last year",
+                     "Presence of outpatient provider ID",bmilist,
+                     "Observation frequency",
+                     "Urinary catheter insertion in the last 28 days",
+                     "'Do not resuscitate' order in the last year",
+                     "Discharged from hospital in the last 28 days",
+                     "Intensive care admission in the last 28 days",
+                     "Psychiatry referral in the last year",
+                     "Nephrostomy in the last year",
+                     "Surgery in the last year",
+                     "Hydration order in the last 28 days",
+                     "Nasogastric tube insertion in the last 28 days",
+                     "Cytotoxic chemotherapy in the last 28 days",
+                     "Nutrition referral in the last year",
+                     "Physiotherapy in the last year",
+                     "Restraints used in the last year",
+                     "Occupational therapy in the last year",
+                     "Total parenteral nutrition in the last year",agelist,
+                     racelist,marilist,inslist,langlist,admlist,servlist,"Intercept"
+  )
+  
+  coefkey <- data.frame(Parameter_name=parameter_key,Parameter=df %>% colnames() %>% append("Intercept")) %>% tibble()
+  assign("coefkey",coef_key)
+  csv_list <- c()
+  for (i in seq_along(abxlist)) {
+    this_csv <- read_csv(glue("{abxlist[i]}_coef_list.csv"))
+    this_csv <- this_csv %>% left_join(coefkey,by="Parameter") %>% 
+      relocate(Parameter_name,.before="Parameter") %>% 
+      select(-Parameter)
+    write_csv(this_csv,glue("{abxlist[i]}_coef_list.csv"))
+  }
+  
+}
+
+###Cleaning and separating fairness dataframes
+fairdf_cleaner <- function(T_df,F_df) {
+  
+  T_df <- read_csv(T_df)
+  F_df <- read_csv(F_df)
+  
+  T_df <- T_df %>% t() %>% data.frame() %>% 
+    mutate(Parameter = colnames(T_df)) %>% 
+    left_join(coefkey,by="Parameter") %>% relocate(Parameter_name,.before=1) %>% 
+    select(-Parameter)
+  female_vector <- c("Female", F_df$MALE)
+  Female <- data.frame(t(female_vector), stringsAsFactors = FALSE)
+  colnames(Female) <- colnames(T_df)
+  T_df <- T_df %>% 
+    add_row(Female,.before=3)
+  
+  abxlist <- c("AMP","SAM","TZP","CZO","CRO","CAZ","FEP","MEM","CIP",
+               "GEN","SXT","NIT","VAN")
+  
+  for (abx in seq_along(abxlist)) {
+    
+    filtered_df <- cbind(Characteristic = T_df$Parameter_name,
+                         T_df[, which(T_df[1, ] == abxlist[abx])])
+    colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
+    filtered_df <- filtered_df %>% slice(-c(1:2))
+    
+    write_filename <- glue("{abxlist[abx]}_fairdf.csv")
+    
+    write_csv(filtered_df,write_filename)
+    
+  }
+  
+}
+
+
 ##Model performance check
 
 ###Rearrange and display model validation results
@@ -434,6 +631,7 @@ for (i in 1:13) {
 }
 performance_results <- performance_results %>% relocate(Support,.after="Accuracy")
 print(performance_results)
+write_csv(performance_results,"peformance_results.csv")
 
 ##Preprocessing for microsimulation
 
@@ -536,7 +734,6 @@ war_PDAST6 <- create_df(urines_aware, n_waR_PDAST6, "PDAST\nWatch R", "PDAST")
 war_standard6 <- create_df(urines_aware, n_waR_standard6, "Standard\nWatch R", "Standard")
 allr_PDAST6 <- create_df(urines_aware, n_allR_PDAST6, "PDAST\nAll R", "PDAST")
 allr_standard6 <- create_df(urines_aware, n_allR_standard6, "Standard\nAll R", "Standard")
-acs_df %>% count(AWaRe_results)
 acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,
                            was_PDAST6,was_standard6,
                            all_PDAST6,all_standard6,
@@ -550,15 +747,15 @@ acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
 acs_df <- acs_df %>% rename(Approach="Panel")
 
 ###Main dot plot of number of all S results and Access S results per panel
-acs_df %>% main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
+main_aware_plot <- acs_df %>% main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
                            "All agents","WHO access agents")
 
 ###Dot plot of number of all R results and Access R results per panel
-acs_df %>% main_dotplotter("PDAST\nAll R","Standard\nAll R","PDAST\nAccess R","Standard\nAccess R",
+accessr_aware_plot <- acs_df %>% main_dotplotter("PDAST\nAll R","Standard\nAll R","PDAST\nAccess R","Standard\nAccess R",
                            "All agents (R)","WHO access agents (R)","(Access agent resistance)")
 
 ###Dot plot of number of Watch S results and Watch R results per panel
-acs_df %>% main_dotplotter("PDAST\nWatch S","Standard\nWatch S","PDAST\nWatch R","Standard\nWatch R",
+watch_plot <- acs_df %>% main_dotplotter("PDAST\nWatch S","Standard\nWatch S","PDAST\nWatch R","Standard\nWatch R",
                            "WHO watch agents (S)","WHO watch agents (R)","(Watch agent results)")
 
 ###Tests of statistical significance for Access and all susceptible results
@@ -660,7 +857,6 @@ watch_r_iqr25 <- c()
 watch_r_iqr75 <- c()
 watch_r_n_0s <- c()
 
-
 ###Assign vector of decision thresholds
 cutoffseq <- c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9)
 
@@ -743,12 +939,11 @@ sens_mediansplot_access <- sens_mediansplot_df %>% filter(PDAST=="Access S/I")
 
 ###Results-per-panel sensitivity analysis for all agents
 rpp_all_plot <- sens_mediansplot_all %>% 
-  rpp_plot(urines_aware$n_allS_standard6,"all","rpp_all_plot.csv")
-rpp_all_plot
+  rpp_plot(urines_aware$n_allS_standard6,"all","rpp_all_plot.pdf")
 
 ###Results-per-panel sensitivity analysis for Access category agents
 rpp_access_plot <- sens_mediansplot_access %>% 
-  rpp_plot(urines_aware$n_acS_standard6,"Access","rpp_access_plot.csv")
+  rpp_plot(urines_aware$n_acS_standard6,"Access","rpp_access_plot.pdf")
 
 ###Assemble sensitivity analysis data frame for results-per-panel data visualisation
 sens_zeroplot_df <- data.frame(rbind(
@@ -770,26 +965,75 @@ pwr_all_plot <- sens_zeroplot_all %>%
 pwr_access_plot <- sens_zeroplot_access %>% 
   pwr_plot(urines_aware$n_acS_standard6,"Access","pwr_access_plot.pdf")
 
-###Panels-without-results sensitivity analysis for Access category agents
-pwr_access_plot <- ggplot(sens_zeroplot_access,aes(x=cutoffseq)) +
-  geom_line(aes(y=100-as.numeric(zeroval),group=PDAST,color=PDAST))+
-  ylim(c(0,100)) +
-  ggtitle("PDAST at-least-one susceptible result sensitivity\nanalysis (WHO Access agents): The effect of varying\nthe decision threshold for Access agent testing")+
-  xlab("Minimum probability threshold to test Access agent") +
-  ylab("Percentage of panels providing at least one\nsusceptible result for Access agents")+
-  scale_color_manual(values="#00BFC4")+
-  scale_x_discrete(expand = c(0,0))+
-  geom_hline(yintercept = (1-sum(urines_aware$n_acS_standard6==0)/nrow(urines_aware))*100,linetype="dashed",color="#F8766D")+
-  labs(tag = "Standard panel") +
-  theme(plot.tag.position = c(0.92, 1-0.175),
-        plot.tag = element_text(size = 6.5,color="#F8766D"),
-        legend.position="none",
-        plot.margin = unit(c(1,1,1,1),"cm"))
+##Coefficient list cleaning
 
-ggsave("pwr_access_plot.pdf", plot = pwr_access_plot, device = "pdf", width = 6, height = 6,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+coef_keymaker("urines_coef_df.csv")
 
-##Aggregated race fairness observational subanalysis
+##Fairness analysis
+
+###Cleaning and separating fairness data frames
+fairdf_cleaner("T_fairness_metrics.csv","F_fairness_metrics.csv")
+
+fairdf_cleaner <- function(T_df,F_df) {
+  
+  T_df <- read_csv(T_df)
+  F_df <- read_csv(F_df)
+  
+  T_df <- T_df %>% t() %>% data.frame() %>% 
+    mutate(Parameter = colnames(T_df)) %>% 
+    left_join(coefkey,by="Parameter") %>% relocate(Parameter_name,.before=1) %>% 
+    select(-Parameter)
+  female_vector <- c("Female", F_df$MALE)
+  Female <- data.frame(t(female_vector), stringsAsFactors = FALSE)
+  colnames(Female) <- colnames(T_df)
+  T_df <- T_df %>% 
+    add_row(Female,.before=3)
+  
+  n_characteristics <- function(ref_df,prefix,column_name) {
+    
+    column_name <- enquo(column_name)
+    
+    ref_df %>% distinct(subject_id,.keep_all=T) %>% count(!!column_name) %>% 
+      mutate(Parameter = str_c(prefix,!!column_name)) %>% 
+      left_join(coefkey,by="Parameter") %>% select(-Parameter,-!!column_name) %>% 
+      rename(Characteristic = "Parameter_name")
+    
+  }
+  
+  n_key <- rbind(
+    urines_ref %>% n_characteristics("race_",race),
+    urines_ref %>% n_characteristics("marital_status_",marital_status),
+    urines_ref %>% n_characteristics("insurance_",insurance),
+    urines_ref %>% n_characteristics("standard_age_",standard_age),
+    urines_ref %>% n_characteristics("language_",language),
+    urines_ref %>% count(MALE) %>% 
+      mutate(Characteristic = case_when(MALE~"Male",TRUE~"Female")) %>% 
+      select(-MALE)) %>% tibble()
+  
+  abxlist <- c("AMP","SAM","TZP","CZO","CRO","CAZ","FEP","MEM","CIP",
+               "GEN","SXT","NIT","VAN")
+  
+  for (abx in seq_along(abxlist)) {
+    
+    filtered_df <- cbind(Characteristic = T_df$Parameter_name,
+                         T_df[, which(T_df[1, ] == abxlist[abx])])
+    colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
+    filtered_df <- filtered_df %>% slice(-c(1:2)) %>% 
+      left_join(n_key,by="Characteristic") %>% relocate(n,.before="Accuracy")
+    
+    write_filename <- glue("{abxlist[abx]}_fairdf.csv")
+    
+    write_csv(filtered_df,write_filename)
+    
+  }
+  
+  
+  
+}
+
+
+
+###Aggregated race fairness analysis on microsimulation dataset
 
 ref_urines_aware <- pos_urines %>% mutate(charttime = as_datetime(charttime)) %>% 
                                             semi_join(urines_aware,by="micro_specimen_id")
@@ -802,35 +1046,19 @@ probs_df_overall <- probs_df_overall %>%
                      S >= 0.5 ~ "S",
                      NT >= 0.5 ~ "NT",
                      TRUE ~ NA))
-accuracy_function <- function(df,probs_df,abx,ab_col) {
-  
-  ab_col = enquo(ab_col)
-  
-  pddf <- probs_df %>% filter(Antimicrobial == abx) %>% select(micro_specimen_id,pred_res) %>% 
-    right_join(df, by = "micro_specimen_id") %>% mutate(
-      TP = case_when(!!ab_col == "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
-      FP = case_when(!!ab_col != "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
-      TN = case_when(!!ab_col != "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE),
-      FN = case_when(!!ab_col == "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE)
-    )
-  
-  TP <- sum(pddf$TP)
-  FP <- sum(pddf$FP)
-  TN <- sum(pddf$TN)
-  FN <- sum(pddf$FN)
-  
-  (TP + TN) / (TP + TN + FP + FN)
-  
-}
-ablist <- ab_name(all_abs) %>% str_replace("/","-")
-for (i in 1:length(ablist)) {
-  
-  accdiff <- (accuracy_function(ref_white,probs_df_overall,ab_name(all_abs)[i],TZP) -
-      accuracy_function(ref_nw,probs_df_overall,ab_name(all_abs)[i],TZP))*100
 
-  print(glue("Accuracy difference for {ab_name(all_abs)[i]}: {accdiff}"))
-    
-}
-
+ref_white %>% accdiff(ref_nw,"AMP",AMP)
+ref_white %>% accdiff(ref_nw,"SAM",SAM)
+ref_white %>% accdiff(ref_nw,"TZP",TZP)
+ref_white %>% accdiff(ref_nw,"CZO",CZO)
+ref_white %>% accdiff(ref_nw,"CRO",CRO)
+ref_white %>% accdiff(ref_nw,"CAZ",CAZ)
+ref_white %>% accdiff(ref_nw,"FEP",FEP)
+ref_white %>% accdiff(ref_nw,"MEM",MEM)
+ref_white %>% accdiff(ref_nw,"CIP",CIP)
+ref_white %>% accdiff(ref_nw,"GEN",GEN)
+ref_white %>% accdiff(ref_nw,"SXT",SXT)
+ref_white %>% accdiff(ref_nw,"NIT",NIT)
+ref_white %>% accdiff(ref_nw,"VAN",VAN)
 
 
