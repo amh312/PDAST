@@ -96,7 +96,7 @@ abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Stan
           colour = axiscols))
 
 ggsave("abx_prescribed.pdf", plot = abx_prescribed, device = "pdf", width = 10, height = 4,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+       path="#FILEPATH#")
 
 #Total number of antimicrobial-result matches per paneL
 totaller <- function(panel) {
