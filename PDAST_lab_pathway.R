@@ -107,5 +107,5 @@ path_plot <- ggplot(aucroc_df,aes(x=Information,y=AUC_ROC,group=Antimicrobial,co
   xlab("Stage in laboratory specimen pathway")
 
 ggsave("path_plot.pdf", plot = path_plot, device = "pdf", width = 8, height = 4,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+       path="#FILEPATH#")
 
