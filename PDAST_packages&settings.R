@@ -30,6 +30,7 @@ library(reshape2)
 library(ggsci)
 library(dendextend)
 library(TSP)
+library(ggrepel)
 
 ##Working directory and error settings
 
