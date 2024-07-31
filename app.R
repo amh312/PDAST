@@ -1,22 +1,5 @@
 #ADAPT-AST USER INTERFACE
 
-##Packages
-
-library(shiny)
-library("tidyverse")
-library("DescTools")
-library("rethinking")
-library("AMR")
-library("data.table")
-library("devtools")
-library("MIMER")
-library("glue")
-library("pak")
-library("network")
-library("sna")
-library("dendextend")
-library("TSP")
-
 ##Dataset load-in
 
 micro <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/micro_clean2.csv")
@@ -31,6 +14,7 @@ poe <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/poe_clean.csv")
 omr <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/omr.csv")
 services <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/services.csv")
 
+##Random selection of subset of demonstration data
 urines_aware <- read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/urines_assess.csv")
 session_urines <- readr::read_csv("/Users/alexhoward/Documents/Projects/UDAST_code/microbiologyevents.csv")
 session_urines <- semi_join(session_urines,urines_aware,by="micro_specimen_id")
