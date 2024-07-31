@@ -1,14 +1,5 @@
 #TIME OUT-OF-SAMPLE SENSITIVITY ANALYSIS
 
-##Packages
-
-library("tidyverse")
-library("glue")
-library("reticulate")
-library("reshape2")
-library("AMR")
-library("ggsci")
-
 ##Functions
 
 ###Joining year groups to datasets
@@ -126,11 +117,15 @@ aucrocs_5t <- read_csv("aucrocs_5t.csv")
 
 ###Assemble dataframe for jitter plots
 ablist <- urines_5t %>% select(AMP:VAN) %>% colnames() %>% ab_name()
-aucrocs_5t$Antimicrobial <- ablist %>% str_replace("/","-")
-aucrocs_5t <- aucrocs_5t %>% relocate(Antimicrobial,.before=1)
-aucrocs_5t <- aucrocs_5t %>% rename(Training = "df1",Testing="df2")
+aucrocs_5t$Antimicrobial <- rep(ablist, length.out = nrow(aucrocs_5t)) %>% 
+  str_replace("/","-")
+aucrocs_5t <- aucrocs_5t %>% relocate(Antimicrobial,.before=1) %>%
+  rename(Training = "df1",Testing="df2") %>% mutate(
+  Training = as.character(Training),
+  Testing = as.character(Testing))
 timegroups <- urines_5t %>% distinct(anchor_year_group) %>% 
   pull(anchor_year_group) %>% sort()
+
 for (i in seq_along(timegroups)) {
   
   aucrocs_5t[aucrocs_5t==i] <- timegroups[i]
@@ -195,3 +190,4 @@ mprint <- glue("2. Maximum mean AUC difference across predictions is {round(maxm
      for {maxmdiff$Testing[1]} ({round(maxmdiff$meanAUC[1],3)}) and {maxmdiff$Testing[2]} ({round(maxmdiff$meanAUC[2],3)})")
 
 print(sdprint,mprint)
+
