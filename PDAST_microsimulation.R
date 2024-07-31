@@ -636,7 +636,7 @@ write_csv(performance_results,"peformance_results.csv")
 ##Preprocessing for microsimulation
 
 ###Set conda environment for reticulate and load python packages/functions
-reticulate::use_condaenv("CPE")
+reticulate::use_condaenv("#CONDAENV_FILEPATH#")
 reticulate::source_python("#FILEPATH#//Imports & functions.py")
 
 ###Assign datasets for microsimulation and probability predictions
