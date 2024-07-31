@@ -260,7 +260,7 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
     geom_segment(aes(x=0.155,xend=0.165,y=yh,yend=yh))+
     ggtitle(glue("{antimicrobial}:\nInstability in AUC-ROC with smaller training datasets")) +
     xlab("Training dataset proportion of whole dataset") +
-    ylab("Micro-averaged AUC")
+    ylab("AUC-ROC")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
@@ -269,13 +269,26 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
   
 }
 
-metrics_df <- read_csv("main_analysis_metrics.csv") %>% 
-  rename(`Antimicrobial agent`="Model",Result="Metric") %>% mutate(
-  `Sub-metric` = case_when(is.na(`Sub-metric`)~"Accuracy",TRUE~`Sub-metric`),
-  `Sub-metric` = str_to_title(`Sub-metric`)) %>% 
-  pivot_wider(names_from=`Sub-metric`,values_from=Score)
+##Load in required adjunctive dataframes
+default_aucrocs <- read_csv("default_aucrocs.csv")
 
-view(metrics_df)
+##Maximum mean difference and standard deviation
+maxmeasures <- function(df,abx) {
+  
+  thisdf <- df %>% group_by(train_size) %>% 
+    mutate(meanAUC = 1-meanAUC) %>% 
+    summarise(mAUC = mean(meanAUC),sdAUC = sd(meanAUC)) %>% ungroup() %>% 
+    mutate(mainAUC = default_aucrocs %>% filter(Antimicrobial==abx) %>% 
+             pull(AUC_ROC),
+           meandiff = mAUC - mainAUC)
+  
+  maxmean <- thisdf %>% arrange(desc(abs(meandiff))) %>% slice(1) %>% 
+    mutate(WhichMax="Meandiff",Antimicrobial=abx)
+  maxsd <- thisdf %>% arrange(desc(sdAUC)) %>% slice(1) %>% mutate(
+    WhichMax = "SD",Antimicrobial=abx)
+  rbind(maxmean,maxsd) %>% tibble
+  
+}
 
 ##Compile dataframes for risk instability analyses
 
@@ -382,3 +395,31 @@ meanAUC_instab(gen_risk_df,"Gentamicin","gen_auc_instab.pdf")
 meanAUC_instab(sxt_risk_df,"Trimethoprim-sulfamethoxazole","sxt_auc_instab.pdf")
 meanAUC_instab(nit_risk_df,"Nitrofurantoin","nit_auc_instab.pdf")
 meanAUC_instab(van_risk_df,"Vancomycin","van_auc_instab.pdf")
+
+##AUC centrality and spread measures
+ampmax <- amp_risk_df %>% maxmeasures("AMP")
+sammax <- sam_risk_df %>% maxmeasures("SAM")
+tzpmax <- tzp_risk_df %>% maxmeasures("TZP")
+czomax <- czo_risk_df %>% maxmeasures("CZO")
+cromax <- cro_risk_df %>% maxmeasures("CRO")
+cazmax <- caz_risk_df %>% maxmeasures("CAZ")
+fepmax <- fep_risk_df %>% maxmeasures("FEP")
+memmax <- mem_risk_df %>% maxmeasures("MEM")
+cipmax <- cip_risk_df %>% maxmeasures("CIP")
+genmax <- gen_risk_df %>% maxmeasures("GEN")
+sxtmax <- sxt_risk_df %>% maxmeasures("SXT")
+nitmax <- nit_risk_df %>% maxmeasures("NIT")
+vanmax <- van_risk_df %>% maxmeasures("VAN")
+max_df <- rbind(ampmax,sammax,tzpmax,czomax,cromax,cazmax,fepmax,
+                memmax,cipmax,genmax,sxtmax,nitmax,vanmax) %>% tibble()
+max_meandiff <- max_df %>% arrange(desc(abs(meandiff))) %>% slice(1)
+max_sd <- max_df %>% arrange(desc(sdAUC)) %>% slice(1)
+max_df %>% arrange(desc(abs(meandiff)))
+glue("The maximum difference between AUC-ROC in the main analysis and
+     the stability analysis was {round(max_meandiff %>% pull(meandiff),3)}, for {ab_name(max_meandiff %>% pull(Antimicrobial))}
+     at a training dataset size of {max_meandiff %>% pull(train_size)*100}%
+     
+     The maximum standard deviation of AUC-ROC values across the stability
+     analysis was {round(max_sd %>% pull(sdAUC),3)},for {ab_name(max_sd %>% pull(Antimicrobial))}
+     at a training dataset size of {max_sd %>% pull(train_size)*100}%")
+
