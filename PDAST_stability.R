@@ -145,7 +145,7 @@ mean_risk_instab <- function(df,antimicrobial,save_as) {
     ggtitle(glue("{antimicrobial}:\nInstability in mean estimated probability of susceptibility"))
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
@@ -177,7 +177,7 @@ risk_dist_instab <- function(csv,antimicrobial,save_as) {
     xlab("Estimated probabilities of susceptibility")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
@@ -220,7 +220,7 @@ mape_instab <- function(df,antimicrobial,save_as) {
     ylab("Mean absolute prediction error")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
@@ -263,7 +263,7 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
     ylab("AUC-ROC")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   plot
   
