@@ -59,7 +59,7 @@ binary_write <- function(df,filename) {
 ###Saving jitter plot to PDF
 save_plot_as_pdf <- function(plot, filename) {
   ggsave(filename, plot = plot, device = "pdf", width = 10, height = 10,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
 }
 
 ##Preprocessing and descriptive analysis
@@ -107,8 +107,8 @@ write_csv(ur_aware_t_4,"ur_aware_t_4.csv")
 ##Cross-validation across all time periods
 
 reticulate::use_condaenv("CPE")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Imports & functions.py")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//UDAST_time.py")
+reticulate::source_python("#FILEPATH#//Imports & functions.py")
+reticulate::source_python("#FILEPATH#//UDAST_time.py")
 
 ##Data visualisation
 
