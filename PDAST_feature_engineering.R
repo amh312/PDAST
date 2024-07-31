@@ -1,34 +1,4 @@
 #FEATURE ENGINEERING
-options(error=NULL)
-
-##Packages
-
-library("tidyverse")
-library("tidymodels")
-library("MLmetrics")
-library("ROCR")
-library("lme4")
-library("rstanarm")
-library("DescTools")
-library("cmdstanr")
-library("posterior")
-library("rethinking")
-library("AMR")
-library("caret")
-library("data.table")
-library("devtools")
-library("MIMER")
-library("corrplot")
-library("glue")
-library("pak")
-library("touch")
-library("sna")
-library("coin")
-
-##Working directory
-
-setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
 
 ##Functions
 
@@ -316,17 +286,6 @@ pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
 }, .init = pos_urines) %>%
   ungroup()
 
-###At least 2 inpatient antimicrobial prescriptions in the last year
-apply_prev_rx <- function(df, suffix, antibiotic) {
-  param_name <- paste0("2x", suffix)
-  df %>%
-    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 2)
-}
-pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
-  apply_prev_rx(df, suffixes[i], antibiotics[i])
-}, .init = pos_urines) %>%
-  ungroup()
-
 ##Find inflammatory marker results
 
 ###Elevated C-reactive protein on the same day as the urine specimen
@@ -398,7 +357,7 @@ proc_codes <- c("0", "3", "8", "5", "T", "4", "S", "A", "9",
                      "C", "E", "X", "O")
 pos_urines <- pos_urines %>% prev_ICD_applier(procedures,"pPROC_",proc_codes)
 
-###At least 2 coded previous UTI diagnoses
+###At least one coded previous UTI diagnosis in the last year
 uti_key <-d_icd_diagnoses %>% filter(grepl("urinary tract infection",long_title,ignore.case=T) |
                                        grepl("acute pyelon",long_title,ignore.case=T) |
                                        (grepl("urinary catheter",long_title,ignore.case=T) & 
@@ -406,7 +365,7 @@ uti_key <-d_icd_diagnoses %>% filter(grepl("urinary tract infection",long_title,
 hadm_key <- hadm %>% select(hadm_id,admittime)
 uti_df <- diagnoses_raw %>% left_join(uti_key,by=c("icd_code","icd_version")) %>% 
   filter(!is.na(long_title)) %>% left_join(hadm_key,by="hadm_id")
-pos_urines <- pos_urines %>% care_event_assigner(uti_df,"(urin|pyelo|cath)",long_title,p2UTI,"admittime",1e4,2)
+pos_urines <- pos_urines %>% care_event_assigner(uti_df,"(urin|pyelo|cath)",long_title,pUTI,"admittime",365,1)
 
 ###Presence of an outpatient provider ID
 pos_urines <- pos_urines %>% mutate(provider_id = case_when(order_provider_id!="" ~ TRUE,
