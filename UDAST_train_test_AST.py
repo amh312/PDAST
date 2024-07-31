@@ -10,7 +10,7 @@ ab_full = ['Ampicillin','Ampicillin-sulbactam','Piperacillin-tazobactam','Cefazo
            'Trimethoprim-sulfamethoxazole','Nitrofurantoin']
 to_drop = ["subject_id","micro_specimen_id"]
 metrics_fairness = ['Accuracy','TPR','FPR','FNR','PPP']
-
+    
 ###Preprocessing
 ref_df = pd.read_csv("urines5b.csv")
 ref_df['standard_age'] = ref_df['standard_age'].map(str)
