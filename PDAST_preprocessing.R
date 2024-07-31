@@ -1,34 +1,4 @@
 #PREPROCESSING
-options(error=NULL)
-
-##Packages
-
-library("tidyverse")
-library("tidymodels")
-library("MLmetrics")
-library("ROCR")
-library("lme4")
-library("rstanarm")
-library("DescTools")
-library("cmdstanr")
-library("posterior")
-library("rethinking")
-library("AMR")
-library("caret")
-library("data.table")
-library("devtools")
-library("MIMER")
-library("corrplot")
-library("glue")
-library("pak")
-library("touch")
-library("sna")
-library("coin")
-
-##Working directory
-
-setwd("/Users/alexhoward/Documents/Projects/UDAST_code")
-path_to_data <- "/Users/alexhoward/Documents/Projects/UDAST_code"
 
 ##Functions
 
@@ -253,6 +223,293 @@ mod_var_select_save <- function(df,filename) {
   
 }
 
+###Dataset summary for study flow chart
+dataset_summary <- function(df,mic_dataset) {
+
+  patients <- nrow(df %>% filter(!is.na(subject_id)) %>% distinct(subject_id))
+  specimens <- nrow(df %>% filter(!is.na(micro_specimen_id)) %>% distinct(micro_specimen_id))
+  pats_valid <- ceiling(nrow(df %>% filter(!is.na(subject_id)) %>% distinct(subject_id)) *0.2)
+  specs_valid <- ceiling(nrow(df %>% filter(!is.na(micro_specimen_id)) %>% distinct(micro_specimen_id)) *0.2)
+  
+  if (mic_dataset=="raw") {
+    abx <- nrow(df %>% filter(!is.na(ab_name)) %>% distinct(ab_name))
+    glue("The {mic_dataset} dataset contains data for {patients} patients,
+         {specimens} specimens, and {abx} antimicrobial agents.") 
+  } else if (mic_dataset=="training") {
+    
+    glue("The {mic_dataset} dataset contains data for {patients-pats_valid} patients,
+       {specimens-specs_valid} specimens, and 12 antimicrobial agents.")
+    
+  } else if (mic_dataset=="validation") {
+    
+    glue("The {mic_dataset} dataset contains data for {pats_valid} patients,
+       {specs_valid} specimens, and 12 antimicrobial agents.")
+    
+  } else {
+    glue("The {mic_dataset} dataset contains data for {patients} patients,
+       {specimens} specimens, and 12 antimicrobial agents.")
+  }
+}
+
+###Summarise dataset characteristics
+desc_summary <- function(df,pats_df,hadm_df) {
+  
+  ####Age
+  patskey <- pats_df %>% select(subject_id,anchor_age)
+  age_med <- df %>% left_join(patskey,by="subject_id") %>% select(anchor_age) %>% 
+    reframe(median_age = as.numeric(anchor_age) %>% median(),
+            iqr2_age = (as.numeric(anchor_age) %>% quantile())[2],
+            iqr4_age = (as.numeric(anchor_age) %>% quantile())[4]) %>% 
+    summarise(`Median (IQR)` = paste0(
+      as.character(median_age)," (",as.character(iqr2_age),
+      "-",as.character(iqr4_age),")"
+    )) %>% mutate(`Measure(s)`="Age") %>% relocate(`Measure(s)`,.before="Median (IQR)")
+  
+  print(age_med)
+  filename <- glue("{deparse(substitute(df))}_age_med.csv")
+  write_csv(age_med, filename)
+  
+  ####'Gender'
+  patskey <- pats_df %>% select(subject_id,gender)
+  gen <- df %>% left_join(patskey,by="subject_id") %>% 
+    distinct(subject_id,.keep_all = T) %>% select(gender) %>% 
+    count(gender) %>% 
+    mutate(
+      `% of patients` = round((n/nrow(df %>% distinct(subject_id)))*100,1)
+    ) %>% 
+    reframe(Gender = gender,
+            `n (% of patients)` = paste0(
+              as.character(n)," (",as.character(`% of patients`),")"
+            ))
+  print(gen)
+  
+  filename <- glue("{deparse(substitute(df))}_gen.csv")
+  write_csv(gen, filename)
+  
+  ####Race
+  
+  if ("race" %in% colnames(df)) {
+    
+    races <- df %>% 
+      mutate(Race=case_when(grepl("WHITE",race) ~ "White",
+                            grepl("BLACK",race) ~ "Black",
+                            grepl("HISPANIC",race) ~ "Hispanic",
+                            grepl("ASIAN",race) ~ "Asian",
+                            grepl("(UNKNOWN|DECLINED|UNABLE)",race) ~ "Unknown",
+                            TRUE ~ "Other")) %>% 
+      distinct(subject_id,.keep_all=T) %>% count(Race) %>% 
+      arrange(desc(n)) %>% mutate(
+        `% of patients` = round((n/nrow(df %>% distinct(subject_id)))*100,1),
+        `n (% of patients)` = paste0(
+          as.character(n)," (",as.character(`% of patients`),")"
+        )) %>% select(Race,`n (% of patients)`)
+      
+    
+  } else{
+    
+    patskey <- hadm_df %>% select(subject_id,race) %>% distinct(subject_id,.keep_all = T)
+    races <- df %>% left_join(patskey,by="subject_id") %>% 
+      mutate(Race=case_when(grepl("WHITE",race) ~ "White",
+                            grepl("BLACK",race) ~ "Black",
+                            grepl("HISPANIC",race) ~ "Hispanic",
+                            grepl("ASIAN",race) ~ "Asian",
+                            grepl("(UNKNOWN|DECLINED|UNABLE)",race) ~ "Unknown",
+                            TRUE ~ "Other")) %>% 
+      distinct(subject_id,.keep_all=T) %>% count(Race) %>% 
+      arrange(desc(n)) %>% mutate(
+        `% of patients` = round((n/nrow(df %>% distinct(subject_id)))*100,1),
+        `n (% of patients)` = paste0(
+          as.character(n)," (",as.character(`% of patients`),")"
+        )) %>% select(Race,`n (% of patients)`)
+      
+    
+  }
+  
+  print(races)
+  filename <- glue("{deparse(substitute(df))}_races.csv")
+  write_csv(races, filename)
+  
+  ####Year group
+  patskey <- pats_df %>% select(subject_id,anchor_year_group)
+  y_group <- df %>% left_join(patskey,by="subject_id") %>% 
+    distinct(subject_id,.keep_all = T) %>% 
+    count(anchor_year_group) %>% arrange(desc(n)) %>% 
+    mutate(`% of specimens` = round((n/nrow(df %>% distinct(micro_specimen_id)))*100,1),
+           `n (% of specimens)` = paste0(
+             as.character(n)," (",as.character(`% of specimens`),")"
+           )) %>% select(anchor_year_group,`n (% of specimens)`) %>% 
+    rename(`Time frame` = "anchor_year_group")
+  
+  print(y_group)
+  filename <- glue("{deparse(substitute(df))}_y_group.csv")
+  write_csv(y_group, filename)
+  
+  ####Organism grown
+  all_orgs <- df %>% count(org_fullname) %>% arrange(desc(n)) %>% 
+    mutate(`% of specimens`=round((n/nrow(df %>% 
+                                            distinct(micro_specimen_id)))*100,1),
+           `n (% of specimens)` = paste0(
+              as.character(n)," (",as.character(`% of specimens`),")"
+            )) 
+  
+  named <- all_orgs %>% filter(`% of specimens` >0) %>% rename(`Organism grown` = "org_fullname")
+  
+  other <- all_orgs %>% filter(`% of specimens` ==0) %>% 
+    rename(`Organism grown` = "org_fullname") %>% 
+    reframe(`Organism grown` = "Other",
+            n=sum(n),
+            `% of specimens`=round((n/nrow(df %>% 
+                                             distinct(micro_specimen_id)))*100,1),
+            `n (% of specimens)` = paste0(
+              as.character(n)," (",as.character(`% of specimens`),")"
+            )
+            )
+  
+  all_orgs <- rbind(named,other) %>% tibble()
+  
+  print(all_orgs)
+  filename <- glue("{deparse(substitute(df))}_all_orgs.csv")
+  write_csv(all_orgs, filename)
+  
+  ####Access antimicrobial susceptibility rates
+  sir_rate <- function(df,ab) {
+    ab <- enquo(ab)
+    df %>% count(!!ab) %>% mutate(!!ab:=factor(!!ab,
+                                               levels=c("S","I","R"))) %>% 
+      arrange(!!ab) %>% 
+      mutate(
+        `% of specimens`=round((n/nrow(df %>% distinct(micro_specimen_id)))*100,1),
+        `n (% of specimens)`= paste0(
+          as.character(n)," (",as.character(`% of specimens`),")"
+        )) %>% select(!!ab,`n (% of specimens)`)
+  }
+  amp_sir <- df %>% sir_rate(AMP) 
+  sam_sir <- df %>% sir_rate(SAM)
+  czo_sir <- df %>% sir_rate(CZO)
+  gen_sir <- df %>% sir_rate(GEN)
+  sxt_sir <- df %>% sir_rate(SXT)
+  nit_sir <- df %>% sir_rate(NIT)
+  
+  print(amp_sir)
+  print(sam_sir)
+  print(czo_sir)
+  print(gen_sir)
+  print(sxt_sir)
+  print(nit_sir)
+  
+  filename <- glue("{deparse(substitute(df))}_amp_sir.csv")
+  write_csv(amp_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_sam_sir.csv")
+  write_csv(sam_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_czo_sir.csv")
+  write_csv(czo_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_gen_sir.csv")
+  write_csv(gen_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_sxt_sir.csv")
+  write_csv(sxt_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_nit_sir.csv")
+  write_csv(nit_sir, filename)
+  
+  ####Watch antimicrobial susceptibility rates
+  tzp_sir <- df %>% sir_rate(TZP)
+  cro_sir <- df %>% sir_rate(CRO)
+  caz_sir <- df %>% sir_rate(CAZ)
+  fep_sir <- df %>% sir_rate(FEP)
+  mem_sir <- df %>% sir_rate(MEM) 
+  cip_sir <- df %>% sir_rate(CIP)
+  
+  print(tzp_sir)
+  print(cro_sir)
+  print(caz_sir)
+  print(fep_sir)
+  print(mem_sir)
+  print(cip_sir)
+  
+  filename <- glue("{deparse(substitute(df))}_tzp_sir.csv")
+  write_csv(tzp_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_cro_sir.csv")
+  write_csv(cro_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_caz_sir.csv")
+  write_csv(caz_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_fep_sir.csv")
+  write_csv(fep_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_mem_sir.csv")
+  write_csv(mem_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_cip_sir.csv")
+  write_csv(cip_sir, filename)
+  
+}
+sir_summary <- function(df) {
+  
+  ####Access antimicrobial susceptibility rates
+  sir_rate <- function(df,ab) {
+    ab <- enquo(ab)
+    df %>% count(!!ab) %>% mutate(!!ab:=factor(!!ab,
+                                               levels=c("S","I","R"))) %>% 
+      arrange(!!ab) %>% 
+      mutate(
+        `% of specimens`=round((n/nrow(df %>% distinct(micro_specimen_id)))*100,1),
+        `n (% of specimens)`= paste0(
+          as.character(n)," (",as.character(`% of specimens`),")"
+        )) %>% select(!!ab,`n (% of specimens)`)
+  }
+  amp_sir <- df %>% sir_rate(AMP) 
+  sam_sir <- df %>% sir_rate(SAM)
+  czo_sir <- df %>% sir_rate(CZO)
+  gen_sir <- df %>% sir_rate(GEN)
+  sxt_sir <- df %>% sir_rate(SXT)
+  nit_sir <- df %>% sir_rate(NIT)
+  
+  print(amp_sir)
+  print(sam_sir)
+  print(czo_sir)
+  print(gen_sir)
+  print(sxt_sir)
+  print(nit_sir)
+  
+  filename <- glue("{deparse(substitute(df))}_amp_sir.csv")
+  write_csv(amp_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_sam_sir.csv")
+  write_csv(sam_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_czo_sir.csv")
+  write_csv(czo_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_gen_sir.csv")
+  write_csv(gen_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_sxt_sir.csv")
+  write_csv(sxt_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_nit_sir.csv")
+  write_csv(nit_sir, filename)
+  
+  ####Watch antimicrobial susceptibility rates
+  tzp_sir <- df %>% sir_rate(TZP)
+  cro_sir <- df %>% sir_rate(CRO)
+  caz_sir <- df %>% sir_rate(CAZ)
+  fep_sir <- df %>% sir_rate(FEP)
+  mem_sir <- df %>% sir_rate(MEM) 
+  cip_sir <- df %>% sir_rate(CIP)
+  
+  print(tzp_sir)
+  print(cro_sir)
+  print(caz_sir)
+  print(fep_sir)
+  print(mem_sir)
+  print(cip_sir)
+  
+  filename <- glue("{deparse(substitute(df))}_tzp_sir.csv")
+  write_csv(tzp_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_cro_sir.csv")
+  write_csv(cro_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_caz_sir.csv")
+  write_csv(caz_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_fep_sir.csv")
+  write_csv(fep_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_mem_sir.csv")
+  write_csv(mem_sir, filename)
+  filename <- glue("{deparse(substitute(df))}_cip_sir.csv")
+  write_csv(cip_sir, filename)
+  
+}
+
 ##Preprocessing to assign stem MD dataset and microsimulation dataset
 
 ###Filter to the last urine for each subject and collapse AST results
@@ -381,3 +638,26 @@ urines5_CIP <- urines5_CIP %>% mod_var_select_save("urines5_cip.csv")
 urines5_GEN <- urines5_GEN %>% mod_var_select_save("urines5_gen.csv")
 urines5_SXT <- urines5_SXT %>% mod_var_select_save("urines5_sxt.csv")
 urines5_NIT <- urines5_NIT %>% mod_var_select_save("urines5_nit.csv")
+
+##Study flow
+micro_raw <- read_csv("microbiologyevents.csv")
+speckey <- urines_assess %>% select(micro_specimen_id)
+pre_urines <- read_csv("pos_urines_pre_features.csv") %>% 
+  semi_join(speckey,by="micro_specimen_id")
+
+dataset_summary(micro_raw,"raw","urines_assess") ####Raw dataset
+dataset_summary(pos_urines,"clean") ####Clean dataset
+dataset_summary(urines_assess,"microsimulation") ####Microsimulation dataset
+dataset_summary(urines_ref,"model development") ####Model development dataset
+dataset_summary(urines_ref,"training") ####Training dataset
+dataset_summary(urines_ref,"validation") ####Testing dataset
+
+##Descriptive data
+
+desc_summary(urines_ref,pats,hadm)
+desc_summary(pre_urines,pats,hadm)
+sir_summary(urines_assess)
+
+
+
+
