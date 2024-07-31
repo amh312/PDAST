@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from itertools import cycle
 import pickle
+import mlxtend
 
 ###Scikit-learn
 from sklearn.preprocessing import LabelBinarizer
@@ -142,7 +143,7 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
     c_value = list(c_dict.values())[0]
 
 ###LR hyperparameter tuning & feature selection (multinomial analysis)
-def lr_hyp_tune_feats2(df,target,ht_features,test=0.2,random=1,folds=6,model_type="auto",cw=None,
+def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="auto",cw=None,
                       scorer='f1_weighted',target_ab='antibiotic',targ_result=''):
     X_train, X_test, y_train, y_test = train_test_split(
         ht_features,
@@ -282,7 +283,7 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
                 ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=False)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest positive coefficients for "+ label + " prediction")
                 plt.tight_layout()
-                plt.savefig(target_ab + label + "-posfeatures.pdf", format="pdf", bbox_inches="tight")
+                plt.savefig(target_ab + label + "-posfeatures_time.pdf", format="pdf", bbox_inches="tight")
 
 
             if len(coefs.sort_values(by=0,ascending=True)[0:4] != 0):
@@ -293,7 +294,7 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
                 ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=True)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest negative coefficients for " + label + " prediction")
                 plt.tight_layout()
-                plt.savefig(target_ab + label + "-negfeatures.pdf", format="pdf", bbox_inches="tight")
+                plt.savefig(target_ab + label + "-negfeatures_time.pdf", format="pdf", bbox_inches="tight")
 
 
     else:
@@ -310,7 +311,7 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
         plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
         plt.legend([])
         plt.tight_layout()
-        plt.savefig(target_ab + targ_result + "-posfeatures.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(target_ab + targ_result + "-posfeatures_time.pdf", format="pdf", bbox_inches="tight")
 
 
         fig, ax = plt.subplots()
@@ -321,7 +322,7 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
         plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
         plt.legend([])
         plt.tight_layout()
-        plt.savefig(target_ab + targ_result + "-negfeatures.pdf",format="pdf",bbox_inches="tight")
+        plt.savefig(target_ab + targ_result + "-negfeatures_time.pdf",format="pdf",bbox_inches="tight")
 
 
     global c_value
@@ -1347,8 +1348,7 @@ def own_time_per(filename_t):
 
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1404,8 +1404,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1460,8 +1459,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1516,8 +1514,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1572,8 +1569,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1628,8 +1624,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1685,8 +1680,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1741,8 +1735,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1797,8 +1790,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1853,8 +1845,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1909,8 +1900,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -1966,8 +1956,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -2022,8 +2011,7 @@ def own_time_per(filename_t):
         features = urines5.drop('Y',axis=1)
 
         #C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                    target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
                     random=i,
@@ -2108,8 +2096,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2183,8 +2170,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2258,8 +2244,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2333,8 +2318,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2408,8 +2392,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2483,8 +2466,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2558,8 +2540,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2633,8 +2614,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2708,8 +2688,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2783,8 +2762,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2858,8 +2836,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -2934,8 +2911,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
@@ -3009,8 +2985,7 @@ def across_time_per(filename_t,filename_t2):
         features2 = features2[features.columns]
 
         # C hyperparameter tuning and feature selection
-        lr_hyp_tune_feats_t(df=urines5,
-                          target=urines5["Y"],
+        lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
                           random=i,
