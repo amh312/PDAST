@@ -526,7 +526,11 @@ acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
   mutate(iqr_min=case_when(iqr_min<0 ~ 0,TRUE~iqr_min))
 acs_df <- acs_df %>% rename(Approach="Panel")
 
-write_csv(acs_df,"i_sourcedata_aware_dotplot.csv")
+summdf <- acs_df %>% group_by(AWaRe_results) %>% mutate(median_n = median(n)) %>%
+  ungroup() %>% left_join(acs_df %>% group_by(AWaRe_results) %>% 
+                            count(n,name="n_points"),by=c("AWaRe_results","n")) %>% distinct()
+
+write_csv(summdf,"i_sourcedata_aware_dotplot.csv")
 
 ###Main dot plot of number of all S results and Access S results per panel
 i_main_aware_plot <- acs_df %>% i_main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
