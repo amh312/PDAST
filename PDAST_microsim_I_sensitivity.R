@@ -526,6 +526,8 @@ acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
   mutate(iqr_min=case_when(iqr_min<0 ~ 0,TRUE~iqr_min))
 acs_df <- acs_df %>% rename(Approach="Panel")
 
+write_csv(acs_df,"i_sourcedata_aware_dotplot.csv")
+
 ###Main dot plot of number of all S results and Access S results per panel
 i_main_aware_plot <- acs_df %>% i_main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
                                               "All agents","WHO access agents","(I-R sensitivity analysis)")
@@ -590,6 +592,8 @@ axiscols <- if_else(
   abs_df %>% filter(Approach == "Standard") %>% arrange(values) %>% pull(ind) %in% ab_name(access_abs),
   "seagreen", "darkorange"
 )
+
+write_csv(abs_df,"i_sourcedata_abs_cleveplot.csv")
 
 ###Dot plot of number of S results per antimicrobial agent
 i_sens_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
@@ -718,6 +722,9 @@ sens_mediansplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
 sens_mediansplot_all <- sens_mediansplot_df %>% filter(PDAST=="All S/I")
 sens_mediansplot_access <- sens_mediansplot_df %>% filter(PDAST=="Access S/I")
 
+write_csv(sens_mediansplot_all,"i_sourcedata_decis_all.csv")
+write_csv(sens_mediansplot_access,"i_sourcedata_decis_access.csv")
+
 ###Results-per-panel sensitivity analysis for all agents
 i_rpp_all_plot <- sens_mediansplot_all %>% 
   rpp_plot_ItoR(urines_aware$n_allS_standard6,"all","i_rpp_all_plot.pdf")
@@ -737,6 +744,9 @@ sens_zeroplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
                                      cutoffseq)
 sens_zeroplot_all <- sens_zeroplot_df %>% filter(PDAST=="All S/I")
 sens_zeroplot_access <- sens_zeroplot_df %>% filter(PDAST=="Access S/I")
+
+write_csv(sens_zeroplot_all,"i_sourcedata_zero_all.csv")
+write_csv(sens_zeroplot_access,"i_sourcedata_zero_access.csv")
 
 ###Panels-without-results sensitivity analysis for all agents
 i_pwr_all_plot <- sens_zeroplot_all %>% 
