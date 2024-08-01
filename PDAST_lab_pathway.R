@@ -66,6 +66,8 @@ aucroc_df <- aucroc_df %>%
                               levels=aucroc_df %>% pull(Information) %>% unique()),
          Antimicrobial = ab_name(Antimicrobial))
 
+write_csv(aucroc_df,"sourcedata_labpath.csv")
+
 ###Specimen pathway line chart
 ablab <- function(antib) {
   aucroc_df %>% filter(Antimicrobial==ab_name(antib)&Information=="Other AST")
