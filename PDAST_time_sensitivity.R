@@ -132,6 +132,8 @@ for (i in seq_along(timegroups)) {
   
 }
 
+write_csv(aucrocs_5t,"sourcedata_timesens.csv")
+
 ##Jitter plot data visualisation of AUC values across cross-validations
 aucgraph <- aucrocs_5t %>% melt()
 mean_data <- aucgraph %>%
