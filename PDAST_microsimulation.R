@@ -444,13 +444,18 @@ accdiff <- function(df1,df2,ab,abx) {
   
   abx <- enquo(abx)
   
-  print(paste0("White: ",accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx)*100))
+  white <- paste0("White: ",accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx)*100) 
+  print(white)
   
-  print(paste0("Non-white: ",accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx)*100))
+  nonwhite <- paste0("Non-white: ",accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx)*100)
+  print(nonwhite)
+
+  difference <- paste0("Difference: ",(accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx) -
+      accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100)
+  print(difference)  
   
-  print(paste0("Difference: ",(accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx) -
-      accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100))
-  
+  c(white,nonwhite,difference)
+
 }
 
 ###Populating model coefficient full names
@@ -746,6 +751,8 @@ acs_df <- acs_df %>% group_by(AWaRe_results) %>% mutate(iqr_min=quantile(n)[2],
   mutate(iqr_min=case_when(iqr_min<0 ~ 0,TRUE~iqr_min))
 acs_df <- acs_df %>% rename(Approach="Panel")
 
+write_csv(acs_df,"sourcedata_aware_dotplot.csv")
+
 ###Main dot plot of number of all S results and Access S results per panel
 main_aware_plot <- acs_df %>% main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
                            "All agents","WHO access agents")
@@ -811,7 +818,9 @@ axiscols <- if_else(
   "seagreen", "darkorange"
 )
 
-###Dot plot of number of S results per antimicrobial agent
+write_csv(abs_df,"sourcedata_abs_cleveplot.csv")
+
+###Cleveland dot plot of number of S results per antimicrobial agent
 s_results_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
   geom_line(aes(group=ind),alpha=0.5)+
   geom_point(aes(color=Approach),size=4) +
@@ -937,6 +946,9 @@ sens_mediansplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
 sens_mediansplot_all <- sens_mediansplot_df %>% filter(PDAST=="All S/I")
 sens_mediansplot_access <- sens_mediansplot_df %>% filter(PDAST=="Access S/I")
 
+write_csv(sens_mediansplot_all,"sourcedata_decis_all.csv")
+write_csv(sens_mediansplot_access,"sourcedata_decis_access.csv")
+
 ###Results-per-panel sensitivity analysis for all agents
 rpp_all_plot <- sens_mediansplot_all %>% 
   rpp_plot(urines_aware$n_allS_standard6,"all","rpp_all_plot.pdf")
@@ -956,6 +968,9 @@ sens_zeroplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
                                            cutoffseq)
 sens_zeroplot_all <- sens_zeroplot_df %>% filter(PDAST=="All S/I")
 sens_zeroplot_access <- sens_zeroplot_df %>% filter(PDAST=="Access S/I")
+
+write_csv(sens_zeroplot_all,"sourcedata_zero_all.csv")
+write_csv(sens_zeroplot_access,"sourcedata_zero_access.csv")
 
 ###Panels-without-results sensitivity analysis for all agents
 pwr_all_plot <- sens_zeroplot_all %>% 
@@ -1046,19 +1061,20 @@ probs_df_overall <- probs_df_overall %>%
                      S >= 0.5 ~ "S",
                      NT >= 0.5 ~ "NT",
                      TRUE ~ NA))
+race_suban <- rbind(
+ref_white %>% accdiff(ref_nw,"AMP",AMP) %>% append(ab_name("AMP")),
+ref_white %>% accdiff(ref_nw,"SAM",SAM) %>% append(ab_name("SAM")),
+ref_white %>% accdiff(ref_nw,"TZP",TZP) %>% append(ab_name("TZP")),
+ref_white %>% accdiff(ref_nw,"CZO",CZO) %>% append(ab_name("CZO")),
+ref_white %>% accdiff(ref_nw,"CRO",CRO) %>% append(ab_name("CRO")),
+ref_white %>% accdiff(ref_nw,"CAZ",CAZ) %>% append(ab_name("CAZ")),
+ref_white %>% accdiff(ref_nw,"FEP",FEP) %>% append(ab_name("FEP")),
+ref_white %>% accdiff(ref_nw,"MEM",MEM) %>% append(ab_name("MEM")),
+ref_white %>% accdiff(ref_nw,"CIP",CIP) %>% append(ab_name("CIP")),
+ref_white %>% accdiff(ref_nw,"GEN",GEN) %>% append(ab_name("GEN")),
+ref_white %>% accdiff(ref_nw,"SXT",SXT) %>% append(ab_name("SXT")),
+ref_white %>% accdiff(ref_nw,"NIT",NIT) %>% append(ab_name("NIT"))) %>% 
+  data.frame()
 
-ref_white %>% accdiff(ref_nw,"AMP",AMP)
-ref_white %>% accdiff(ref_nw,"SAM",SAM)
-ref_white %>% accdiff(ref_nw,"TZP",TZP)
-ref_white %>% accdiff(ref_nw,"CZO",CZO)
-ref_white %>% accdiff(ref_nw,"CRO",CRO)
-ref_white %>% accdiff(ref_nw,"CAZ",CAZ)
-ref_white %>% accdiff(ref_nw,"FEP",FEP)
-ref_white %>% accdiff(ref_nw,"MEM",MEM)
-ref_white %>% accdiff(ref_nw,"CIP",CIP)
-ref_white %>% accdiff(ref_nw,"GEN",GEN)
-ref_white %>% accdiff(ref_nw,"SXT",SXT)
-ref_white %>% accdiff(ref_nw,"NIT",NIT)
-ref_white %>% accdiff(ref_nw,"VAN",VAN)
-
+write_csv(race_suban,"sourcedata_racesuban.csv")
 
