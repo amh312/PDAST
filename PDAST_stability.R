@@ -145,7 +145,7 @@ mean_risk_instab <- function(df,antimicrobial,save_as) {
     ggtitle(glue("{antimicrobial}:\nInstability in mean estimated probability of susceptibility"))
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="#FILEPATH#")
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
   plot
   
@@ -177,7 +177,7 @@ risk_dist_instab <- function(csv,antimicrobial,save_as) {
     xlab("Estimated probabilities of susceptibility")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="#FILEPATH#")
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
   plot
   
@@ -220,7 +220,7 @@ mape_instab <- function(df,antimicrobial,save_as) {
     ylab("Mean absolute prediction error")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="#FILEPATH#")
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
   plot
   
@@ -263,7 +263,7 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
     ylab("AUC-ROC")
   
   ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
-         path="#FILEPATH#")
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
   plot
   
@@ -295,42 +295,55 @@ maxmeasures <- function(df,abx) {
 amp_risk_df <- risk_df_func("p2_amp.csv","p3_amp.csv","p4_amp.csv","p5_amp.csv",
                             "p6_amp.csv","p7_amp.csv","p8_amp.csv","p9_amp.csv",
                             "Ampicillin")
+write_csv(amp_risk_df,"sourcedata_amp_instab")
 sam_risk_df <- risk_df_func("p2_sam.csv","p3_sam.csv","p4_sam.csv","p5_sam.csv",
                             "p6_sam.csv","p7_sam.csv","p8_sam.csv","p9_sam.csv",
                             "Ampicillin-sulbactam")
+write_csv(sam_risk_df,"sourcedata_sam_instab")
 tzp_risk_df <- risk_df_func("p2_tzp.csv","p3_tzp.csv","p4_tzp.csv","p5_tzp.csv",
                             "p6_tzp.csv","p7_tzp.csv","p8_tzp.csv","p9_tzp.csv",
                             "Piperacillin-tazobactam")
+write_csv(tzp_risk_df,"sourcedata_tzp_instab")
 czo_risk_df <- risk_df_func("p2_czo.csv","p3_czo.csv","p4_czo.csv","p5_czo.csv",
                             "p6_czo.csv","p7_czo.csv","p8_czo.csv","p9_czo.csv",
                             "Cefazolin")
+write_csv(czo_risk_df,"sourcedata_czo_instab")
 cro_risk_df <- risk_df_func("p2_cro.csv","p3_cro.csv","p4_cro.csv","p5_cro.csv",
                             "p6_cro.csv","p7_cro.csv","p8_cro.csv","p9_cro.csv",
                             "Ceftriaxone")
+write_csv(cro_risk_df,"sourcedata_cro_instab")
 caz_risk_df <- risk_df_func("p2_caz.csv","p3_caz.csv","p4_caz.csv","p5_caz.csv",
                             "p6_caz.csv","p7_caz.csv","p8_caz.csv","p9_caz.csv",
                             "Ceftazidime")
+write_csv(caz_risk_df,"sourcedata_caz_instab")
 fep_risk_df <- risk_df_func("p2_fep.csv","p3_fep.csv","p4_fep.csv","p5_fep.csv",
                             "p6_fep.csv","p7_fep.csv","p8_fep.csv","p9_fep.csv",
                             "Cefepime")
+write_csv(fep_risk_df,"sourcedata_fep_instab")
 mem_risk_df <- risk_df_func("p2_mem.csv","p3_mem.csv","p4_mem.csv","p5_mem.csv",
                             "p6_mem.csv","p7_mem.csv","p8_mem.csv","p9_mem.csv",
                             "Meropenem")
+write_csv(mem_risk_df,"sourcedata_mem_instab")
 cip_risk_df <- risk_df_func("p2_cip.csv","p3_cip.csv","p4_cip.csv","p5_cip.csv",
                             "p6_cip.csv","p7_cip.csv","p8_cip.csv","p9_cip.csv",
                             "Ciprofloxacin")
+write_csv(cip_risk_df,"sourcedata_cip_instab")
 gen_risk_df <- risk_df_func("p2_gen.csv","p3_gen.csv","p4_gen.csv","p5_gen.csv",
                             "p6_gen.csv","p7_gen.csv","p8_gen.csv","p9_gen.csv",
                             "Gentamicin")
+write_csv(gen_risk_df,"sourcedata_gen_instab")
 sxt_risk_df <- risk_df_func("p2_sxt.csv","p3_sxt.csv","p4_sxt.csv","p5_sxt.csv",
                             "p6_sxt.csv","p7_sxt.csv","p8_sxt.csv","p9_sxt.csv",
                             "Trimethoprim-sulfamethoxazole")
+write_csv(sxt_risk_df,"sourcedata_sxt_instab")
 nit_risk_df <- risk_df_func("p2_nit.csv","p3_nit.csv","p4_nit.csv","p5_nit.csv",
                             "p6_nit.csv","p7_nit.csv","p8_nit.csv","p9_nit.csv",
                             "Nitrofurantoin")
+write_csv(nit_risk_df,"sourcedata_nit_instab")
 van_risk_df <- risk_df_func("p2_van.csv","p3_van.csv","p4_van.csv","p5_van.csv",
                             "p6_van.csv","p7_van.csv","p8_van.csv","p9_van.csv",
                             "Vancomycin")
+write_csv(van_risk_df,"sourcedata_van_instab")
 
 ##Mean estimated risk instability plots
 
