@@ -90,6 +90,8 @@ max_count <- ceiling(abx_graph1 %>% select(-Panel,-Result) %>%
   group_by(abx_name) %>% mutate(n=sum(n)) %>% arrange(desc(n)) %>%
   ungroup() %>% slice(1) %>% select(n) %>% unlist() /25) * 25
 
+write_csv(abx_graph,"sourcedata_prescr_abx.csv")
+
 ###Data visualisation of antimicrobial-result matches
 abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Standard", -n, n),
                       fill = Result)) +
@@ -120,7 +122,7 @@ abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Stan
           colour = axiscols))
 
 ggsave("abx_prescribed.pdf", plot = abx_prescribed, device = "pdf", width = 10, height = 4,
-       path="#FILEPATH#")
+       path="/Users/alexhoward/Documents/Projects/UDAST_code")
 
 ###Counting the total number of antimicrobial-result matches per paneL
 PDAST_total <- totaller("PDAST")
