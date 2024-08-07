@@ -53,5 +53,18 @@ To reproduce the out-of-sample time cross validation sensitivity analysis:
 To run the prototype application:  
 2. Run **app.R**, using *"session_urines.csv"* as file upload when prompted.  
 
-
 Scripts marked with asterixes use the *reticulate* interface package to run the *Python* script **Prediction_run.py** within *R*, but the code can alternatively be run by running the *R* script up to the point that *reticulate* is used, running the **Prediction_run.py** file in *Python*, then running the remainder of the *R* script. Remember to substitute in your local directory filepath in place of #FILEPATH#.
+
+***Testing the code for the main analysis***
+
+Small simulated datasets are provided. These will not reproduce the results of the main analysis, but can be used to test the code.
+
+1. Download *urines5_test.csv*, *urines_assess_test.csv*, and *microbiologyevents_test.csv*
+2. Run the package scripts:  
+   a. **PDAST_packages&settings.R**
+   e. **Imports & functions.py**
+3. Run **UDAST_model_testing.py**  
+4. Run **test_preproc_microsim.R**  
+5. Run **test_Prediction_run.py**
+6. Run **PDAST_microsim_test.R**
+
