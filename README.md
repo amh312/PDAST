@@ -62,7 +62,7 @@ Small simulated datasets are provided. These will not reproduce the results of t
 1. Download *urines5_test.csv*, *urines_assess_test.csv*, and *microbiologyevents_test.csv*
 2. Run the package scripts:  
    a. **PDAST_packages&settings.R**  
-   e. **Imports & functions.py**
+   b. **Imports & functions.py**
 3. Run **UDAST_model_testing.py**  
 4. Run **test_preproc_microsim.R**  
 5. Run **test_Prediction_run.py**
