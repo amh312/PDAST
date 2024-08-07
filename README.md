@@ -68,3 +68,5 @@ Small simulated datasets are provided. These will not reproduce the results of t
 5. Run **test_Prediction_run.py**
 6. Run **PDAST_microsim_test.R**
 
+This testing code will take approximately 10-15 minutes to run, and will produce AUC-ROC graphs, bar charts of the most informative variable coefficients, performance metrics reported in Table 2, the dot plot from the main microsimulation analysis, the antimicrobial dot plot, and the decision threshold sensitivity analysis plots.
+
