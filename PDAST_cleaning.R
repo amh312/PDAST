@@ -5,14 +5,19 @@
 ###Read-in and cleaning
 read_in <- function(file_name) {
   
+  #set file path
   file_path <- file.path(path_to_data, file_name)
+  
+  #read file path into df
   df <- fread(file_path)
   
 }
 micro_clean <- function(file_location,file_name) {
   
+  #set file path
   path_to_data <- file_location
   
+  #sub-define read in file path function
   read_in <- function(file_name) {
     
     file_path <- file.path(path_to_data, file_name)
@@ -20,8 +25,10 @@ micro_clean <- function(file_location,file_name) {
     
   }
   
+  #read in microbiology file to df
   df <- read_in(file_name)
   
+  #manually remove or clean up string variations from micro results
   df <- df %>% mutate(org_name = str_remove(org_name,"POSITIVE FOR"),#---------------------------------------------------Cleaning
                       org_name = str_remove(org_name,"PRESUMPTIVELY"),
                       org_name = str_remove(org_name,"PRESUMPTIVE"),
@@ -135,8 +142,10 @@ micro_clean <- function(file_location,file_name) {
 }
 prescriptions_clean <- function(file_location,file_name) {
   
+  #read filepath
   path_to_data <- file_location
   
+  #sub-define read_in function
   read_in <- function(file_name) {
     
     file_path <- file.path(path_to_data, file_name)
@@ -144,8 +153,10 @@ prescriptions_clean <- function(file_location,file_name) {
     
   }
   
+  #read in prescriptions dataframe
   df <- read_in(file_name)
   
+  #clean antibiotic names using anoop's mimer package
   df <- df %>%
     MIMER::clean_antibiotics(df,drug_col=drug)
   
@@ -246,6 +257,7 @@ intr_mic <- function(df) {
 ###Imputing missing results
 res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta_prior,antimicrobial_name,extra="") {
   
+  #quosure of antibiotic and column of interest variables
   antibiotic <- enquo(antibiotic)
   col <- enquo(col)
   col2 <- enquo(col2)
@@ -263,51 +275,49 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
                               grepl(condition2,!!col2) &
                               !is.na(!!antibiotic)))
   
+  #ensure at least one result of interest in dataframe
   if(N>1) {
     
-    #Bayesian calculations
+    #set range of probabilities
     p <- seq( from=0 , to=1 , length.out=1e4 )
     
+    #calculate posteriors of beta dist params using bayes' theorem
     posterior_alpha <- alpha_prior + x
-    
     posterior_beta <- beta_prior + N - x
     
+    #calculate means and modes of probabilities
     mean_prob <- posterior_alpha / (posterior_alpha + posterior_beta)
     mode_prob <- (posterior_alpha - 1) / (posterior_alpha + posterior_beta - 2)
     
+    #calculate prior, likelihood and posterior using bayes' theorem
     prior <- (p ^ (alpha_prior - 1)) * ((1 - p) ^ (beta_prior - 1))
-    
     likelihood <- (p ^ x) * ( (1 - p) ^ (N - x)  )
-    
     posterior <-  p ^ (posterior_alpha - 1) * (1 - p) ^ (posterior_beta - 1)
     
+    #ensure that posterior prob is not 0 or 1
     if (mean(posterior) != 0 & mean(posterior) != 1) {
       
-      #Sampling posterior distribution
-      
+      #get samples from prior, likelihood, and posterior
       prior_samples <- sample( p , prob=prior , size=1e4 , replace=TRUE )
       prior_samples <- tibble(Probability = prior_samples,Distribution=rep("Prior",length(prior_samples)))
-      
       likelihood_samples <- sample( p , prob=likelihood , size=1e4 , replace=TRUE )
       likelihood_samples <- tibble(Probability = likelihood_samples,Distribution=rep("Likelihood",length(likelihood_samples)))
-      
       post_samples <- sample( p , prob=posterior , size=1e4 , replace=TRUE )
       post_samples <- tibble(Probability = post_samples,Distribution=rep("Posterior",length(post_samples)))
       
-      #Prior, likelihood and posterior density plot
-      
+      #make df for prior, likelihood and posterior line/area plot
       prior_2 <- prior/max(prior)
       prior_plot <- tibble(Density = prior_2,Distribution=rep("Prior",length(prior_2)),Probability=p)
-      
       likelihood_2 <- likelihood/max(likelihood)
       likelihood_plot <- tibble(Density = likelihood_2,Distribution=rep("Likelihood",length(likelihood_2)),Probability=p)
-      
       posterior_2 <- posterior/max(posterior)
       post_plot <- tibble(Density = posterior_2,Distribution=rep("Posterior",length(posterior_2)),Probability=p)
-      
       post_df <- rbind(prior_plot,likelihood_plot,post_plot)
+      
+      #set factor levels for distribution
       post_df$Distribution <- factor(post_df$Distribution, levels=c("Prior","Likelihood","Posterior"))
       
+      #plot distributions
       print(ggplot(post_df,aes(y=Density,x=Probability,group=Distribution,fill=Distribution,color=Distribution)) +
               geom_line() +
               theme(axis.title.y=element_blank(),
@@ -319,33 +329,49 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
               guides(color = FALSE) +
               labs(title=glue("Probability: {antimicrobial_name} resistance in {condition}{extra}")))
       
+      #get posterior n (n*)
       N_star <- nrow(df %>%
                        dplyr::filter(grepl(condition,!!col) &
                                        grepl(condition2,!!col2) &
                                        is.na(!!antibiotic)))
       
-      #Posterior predictive bar plot
-      
+      #function to apply bayes' theorem to each potential value of x* (predicted n res)
       BetaBinom <- Vectorize(function(x_star){
+        
+        #use bayes' theorem to calculate posterior pred density (log to avoid overflow from large vals)
         log.val <- lchoose(N_star, x_star) + lbeta(posterior_alpha+x_star,posterior_beta+N_star-x_star) - lbeta(posterior_alpha,posterior_beta)
+        
+        #convert log vals back to actual
         return(exp(log.val))
       })
       
-      
+      #run vectorised function to get beta-binom posterior predictive
       post_predictive <- BetaBinom(1:N_star)
-      plot(1:N_star,BetaBinom(1:N_star),type="h",col="darkblue",xlab="Estimated prevalence of resistance",ylab="Probability density",
+      
+      #plot posterior predictive beta-binomial distribution
+      plot(
+        
+        #all potential values n resistant on x axis
+        1:N_star,
+        
+        #densities for each potential value on y
+        BetaBinom(1:N_star),
+        
+        #histogram and labels
+        type="h",col="darkblue",xlab="Estimated prevalence of resistance",ylab="Probability density",
            main = glue("Estimated prevalence of {antimicrobial_name} resistance in {N_star} {condition}{extra} isolates"),cex.axis= 1.5,cex.lab=1.5,lwd=4)
       
+      #10,000 samples from posterior distribution
       samples <- sample( p , prob=posterior , size=1e4 , replace=TRUE )
       
     } else {
       
+      #if posterior prob is 0 or 1, take the mean of the posterior
       samples = mean(posterior)
       
     }
     
-    #Summary statistics
-    
+    #sample from beta binomial distribution to fill number of na values
     simu <- rbetabinom(nrow(df %>%
                               dplyr::filter(grepl(condition,!!col) &
                                               grepl(condition2,!!col2) &
@@ -354,29 +380,35 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
                        shape1 = posterior_alpha,
                        shape2 = posterior_beta)
     
+    #get n likelihood
     n_likelihood <- nrow(df %>%
                            dplyr::filter(grepl(condition,!!col) &
                                            grepl(condition2,!!col2) &
                                            !is.na(!!antibiotic)))
+    
+    #get simulated n resistant
     n_simulated <- nrow(df %>%
                           dplyr::filter(grepl(condition,!!col) &
                                           grepl(condition2,!!col2) &
                                           is.na(!!antibiotic)))
     
-    
+    #ensure likelihood isn't zero
     if(mean(likelihood)!=0) {
       
+      #samples from likelihood
       likelihood_samples <- sample( p , prob=likelihood , size=1e4 , replace=TRUE )
       
     } else {
       
+      #if likelihood is zero, make sample flat zero
       likelihood_samples <- 0
       
     }
     
-    
-    
+    #calculate prior using bayes' theorem
     prior_amr_rate <- alpha_prior/(alpha_prior+beta_prior)
+    
+    #mean and highest posterior density of all parameters
     mean_likelihood <- mean(rbinom(1e4,
                                    size = 1 ,
                                    prob = likelihood_samples))
@@ -386,42 +418,48 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
     HPDI_samples <- data.frame(cbind(n_likelihood,n_simulated,prior_amr_rate,mean_likelihood,mean_posterior,mode_posterior,HPDI_posterior))
     rownames(HPDI_samples) <- glue("{condition}_{antimicrobial_name}{extra}")
     
+    #assign hpdi samples to global envir
     assign(glue("{condition}_{antimicrobial_name}{extra}"),HPDI_samples,envir = .GlobalEnv)
     
-    #Result simulation
-    
+    #convert 1s and 0s in binomial simulation to r and s
     simu <- ifelse(simu==1,"R","S")
     
+    #filter to target drug/bug/host combination of interest
     target <- df %>% dplyr::filter(grepl(condition,!!col) &
                                      grepl(condition2,!!col2)) %>% 
       select(isolate_id,!!antibiotic) %>% 
       mutate(!!antibiotic := as.character(!!antibiotic)) %>% data.frame()
     
+    #fill nas with simulated posterior beta binomial
     target[is.na(target)] <- simu
     
+    #ensure no duplicates
     target <- target %>% distinct(isolate_id,.keep_all = T)
     
+    #replace rows in target df with simulated ones
     df <- df %>% mutate(!!antibiotic := as.character(!!antibiotic)) %>% 
       rows_update(target,by=c("isolate_id"))
     
+    #df of organism names and probability distribution
     sample_df <- tibble(cbind(tibble(samples=samples),tibble(org_name=rep(glue("{condition}"),length(samples)))))
     
+    #identify outliers in probability distribution
     sample_df <-
       sample_df %>%
       group_by(org_name) %>%
       mutate(outlier = samples < quantile(samples, .25) - 1.5*IQR(samples) | samples > quantile(samples, .75) + 1.5*IQR(samples)) %>%
       ungroup
     
+    #assign sample df to global env
     assign(glue("{condition}_{antimicrobial_name}{extra}_df"),sample_df,envir = .GlobalEnv)
     
+    #remove temporary isolate id column from df
     df %>% select(-isolate_id)
     
+    #if insufficient results to inform likelihood
   } else {
     
-    #Output for insufficient results to inform likelihood
-    
-    #Summary statistics
-    
+    #simulate beta-binomial distribution
     simu <- rbetabinom(nrow(df %>%
                               dplyr::filter(grepl(condition,!!col) &
                                               grepl(condition2,!!col2) &
@@ -430,60 +468,65 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
                        shape1 = alpha_prior,
                        shape2 = beta_prior)
     
+    #get n for likelihood
     n_likelihood <- nrow(df %>%
                            dplyr::filter(grepl(condition,!!col) &
                                            grepl(condition2,!!col2) &
                                            !is.na(!!antibiotic)))
+    
+    #get n that need simulating
     n_simulated <- nrow(df %>%
                           dplyr::filter(grepl(condition,!!col) &
                                           grepl(condition2,!!col2) &
                                           is.na(!!antibiotic)))
     
-    
-    #Result simulation
-    
+    #replace 1/0 with r/s
     simu <- ifelse(simu==1,"R","S")
     
+    #filter to target conditions of interest
     target <- df %>% dplyr::filter(grepl(condition,!!col) &
                                      grepl(condition2,!!col2)) %>% 
       select(isolate_id,!!antibiotic) %>% 
       mutate(!!antibiotic := as.character(!!antibiotic)) %>% data.frame()
     
+    #replace missing r/s values with simulated ones
     target[is.na(target)] <- simu
     
+    #ensure no duplicate isolate ids
     target <- target %>% distinct(isolate_id,.keep_all = T)
     
+    #update target df with new simulated rows
     df <- df %>% mutate(!!antibiotic := as.character(!!antibiotic)) %>% 
       rows_update(target,by=c("isolate_id"))
     
+    #remove temporary isolate id column
     df %>% select(-isolate_id)
     
     print(glue("Insufficient results to calculate {antimicrobial_name} resistance likelihood for {condition}"))
     
+    #make df to inform running total of number of instances where there were insufficient results
     missing <- data.frame(Antimicrobial=glue("{antimicrobial_name}"),Organism=glue("{condition}"))
-    
     assign(glue("missing"),missing,envir = .GlobalEnv)
-    
     missings <- rbind(missings,missing)
-    
     assign(glue("missings"),missings,envir = .GlobalEnv)
     
+    #make samples a flat 10,000 vector of 1s
     samples <- rep(1,1e4)
     
+    #make blank labelled hpdi df and assign to global env
     HPDI_samples <- data.frame(matrix(nrow=1,ncol=7))
     rownames(HPDI_samples) <- glue("{condition}_{antimicrobial_name}{extra}")
     colnames(HPDI_samples) <- c("n_likelihood","n_simulated","prior_amr_rate",
                                 "mean_likelihood","mean_posterior","mode_posterior",
                                 "HPDI_posterior")
-    
     assign(glue("{condition}_{antimicrobial_name}{extra}"),HPDI_samples,envir = .GlobalEnv)
     
+    #make sample df and assign to global env
     sample_df <- tibble(cbind(tibble(samples=rep(5,length(samples)))),tibble(org_name=rep(glue("{condition}"),length(samples))),
                         tibble(outlier=rep(FALSE,length(samples))))
-    
     assign(glue("{condition}_{antimicrobial_name}{extra}_df"),sample_df,envir = .GlobalEnv)
     
-    
+    #remove temporary isolate id variable
     df %>% select(-isolate_id)
     
   }
@@ -491,8 +534,10 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
 }
 COL_simul <- function(df) {
   
+  #set plot display
   par(mfrow = c(1,1))
   
+  #target orgs for colistin expected s phenotypes
   df <- df %>%
     mutate(colistin_bug = case_when(org_order=="Enterobacterales" & org_family!="Morganellaceae"
                                     & org_fullname!="Serratia marcescens" & org_fullname!="Hafnia"
@@ -503,7 +548,7 @@ COL_simul <- function(df) {
     res_sim(org_fullname,"Pseudomonas aeruginosa",org_fullname,"",COL,1,10000,"Colistin",) %>% 
     res_sim(org_genus,"Acinetobacter",org_fullname,"",COL,1,10000,"Colistin",)
   
-  
+  #summary dataframes
   COL_summary <- data.frame(rbind(
     `Enterobacterales_Colistin`,
     `Pseudomonas aeruginosa_Colistin`,
@@ -520,6 +565,7 @@ COL_simul <- function(df) {
                              distinct(org_name) %>% unlist()) %>% 
     fct_rev()
   
+  #colistin posterior resistance probability plot
   COL_plot <- ggplot(COLdf, aes(x=org_name,y=samples,fill=org_name))+
     geom_boxplot(outlier.shape = NA) +
     geom_point(data = COLdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
@@ -543,15 +589,18 @@ ETP_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #set target organisms and run res sim
   df <- df %>%
     res_sim(org_fullname,"Salmonella Typhi",org_fullname,"",ETP,1,1e4,"Ertapenem") %>% 
     res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",ETP,1,1e4,"Ertapenem") %>%
+    
+    #infer imipenem and meropenem from ertapenem
     mutate(IPM = case_when(ETP=="S" & is.na(IPM) ~ "S",
                            TRUE ~ IPM),
            MEM = case_when(ETP=="S" & is.na(MEM) ~"S",
                            TRUE ~ MEM))
   
-  
+  #dataframes
   ETP_summary <- data.frame(rbind(
     `Salmonella Typhi_Ertapenem`,
     `Haemophilus influenzae_Ertapenem`
@@ -566,6 +615,7 @@ ETP_simul <- function(df) {
                              distinct(org_name) %>% unlist()) %>% 
     fct_rev()
   
+  #ertapenem plot
   ETP_plot <- ggplot(ETPdf, aes(x=org_name,y=samples,fill=org_name))+
     geom_boxplot(outlier.shape = NA) +
     geom_point(data = ETPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
@@ -588,11 +638,13 @@ CRO_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
-  
+  #organisms of interest to simulate cro for expected s phenotypes
   df <- df %>%
     res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
     res_sim(org_fullname,"Moraxella catarrhalis",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
     res_sim(org_fullname,"Neisseria meningitidis",org_fullname,"",CRO,1,1e4,"Ceftriaxone",) %>% 
+    
+    #infer other cephalosporins frm ceftriaxone
     mutate(CTX = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
                                  org_fullname) &
                              CRO=="S" & is.na(CTX) ~ "S",
@@ -648,11 +700,13 @@ CIP_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
-  
+  #simulate cipro expected s
   df <- df %>%
     res_sim(org_fullname,"Haemophilus influenzae",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
     res_sim(org_fullname,"Moraxella catarrhalis",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
     res_sim(org_fullname,"Neisseria meningitidis",org_fullname,"",CIP,1,1e4,"Ciprofloxacin",) %>% 
+    
+    #infer other fluoroquinolones from cipro
     mutate(LVX = case_when(grepl("(Haemophilus influenzae|Moraxella catarrhalis|Neisseria meningitidis)",
                                  org_fullname) &
                              CIP=="S" & is.na(LVX) ~ "S",
@@ -666,6 +720,7 @@ CIP_simul <- function(df) {
                              CIP=="S" & is.na(NOR) ~ "S",
                            TRUE ~ NOR))
   
+  #dfs
   CIP_summary <- data.frame(rbind(
     `Haemophilus influenzae_Ciprofloxacin`,
     `Moraxella catarrhalis_Ciprofloxacin`,
@@ -682,6 +737,7 @@ CIP_simul <- function(df) {
                              distinct(org_name) %>% unlist()) %>% 
     fct_rev()
   
+  #cipro plot
   CIP_plot <- ggplot(CIPdf, aes(x=org_name,y=samples,fill=org_name))+
     geom_boxplot(outlier.shape = NA) +
     geom_point(data = CIPdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
@@ -704,9 +760,11 @@ SPT_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected spectinomycin susceptibility for gonococcus
   df <- df %>%
     res_sim(org_fullname,"Neisseria gonorrhoeae",org_fullname,"",SPT,1,1e4,"Spectinomycin")
   
+  #dfs
   SPT_summary <- data.frame(rbind(
     `Neisseria gonorrhoeae_Spectinomycin`
   ))
@@ -719,6 +777,7 @@ SPT_simul <- function(df) {
                              distinct(org_name) %>% unlist()) %>% 
     fct_rev()
   
+  #prob plot
   SPT_plot <- ggplot(SPTdf, aes(x=org_name,y=samples,fill=org_name))+
     geom_boxplot(outlier.shape = NA) +
     geom_point(data = SPTdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
@@ -740,6 +799,7 @@ VAN_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #simulate for expected van-s organisms
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
     res_sim(org_fullname,"Staphylococcus aureus",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
@@ -751,6 +811,8 @@ VAN_simul <- function(df) {
                            TRUE ~ "N")) %>%
     res_sim(BHS,"BHS",org_fullname,"",VAN,1,1e4,"Vancomycin") %>%
     res_sim(org_fullname,"Corynebacterium",org_fullname,"",VAN,1,1e4,"Vancomycin") %>% 
+    
+    #infer other glycopeptide-adjacent agents from vanc
     mutate(TEC = case_when((grepl("Staphylococcus aureus|Corynebacterium|Streptococcus pneumoniae)",org_fullname) |
                               grepl("BHS",BHS)) &
                              VAN=="S" & is.na(TEC) ~ "S",
@@ -764,7 +826,7 @@ VAN_simul <- function(df) {
     select(-CNS,-BHS)
   
   
-  
+  #dfs
   VAN_summary <- data.frame(rbind(
     `Streptococcus pneumoniae_Vancomycin`,
     `Staphylococcus aureus_Vancomycin`,
@@ -785,6 +847,7 @@ VAN_simul <- function(df) {
                              distinct(org_name) %>% unlist()) %>% 
     fct_rev()
   
+  #plot
   VAN_plot <- ggplot(VANdf, aes(x=org_name,y=samples,fill=org_name))+
     geom_boxplot(outlier.shape = NA) +
     geom_point(data = VANdf %>% dplyr::filter(outlier), position = 'jitter',alpha=0.05) +
@@ -806,6 +869,7 @@ DAP_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #target expected dapto-s organisms
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",DAP,1,1e4,"Daptomycin") %>% 
     res_sim(org_fullname,"Staphylococcus",org_fullname,"",DAP,1,1e4,"Daptomycin") %>% 
@@ -857,6 +921,7 @@ LNZ_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #target expected linezolid-s organisms
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",LNZ,1,1e4,"Linezolid") %>% 
     res_sim(org_fullname,"Staphylococcus",org_fullname,"",LNZ,1,1e4,"Linezolid") %>% 
@@ -908,10 +973,13 @@ PEN_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #target expected pen-s organisms
   df <- df %>%
     mutate(BHS = case_when(grepl("Streptococcus Group",org_fullname) ~ "BHS",
                            TRUE ~ "N")) %>%
     res_sim(BHS,"BHS",org_fullname,"",PEN,1,1e4,"Benzylpenicillin") %>%
+    
+    #infer beta-lactam susceptibility up the chain
     mutate(OXA = case_when(BHS=="BHS" & PEN=="S" ~ "S",
                            TRUE ~ OXA),
            AMP = case_when(BHS=="BHS" & PEN=="S" ~ "S",
@@ -994,6 +1062,7 @@ AMP_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected ampicillin susceptibility for E faecalis
   df <- df %>%
     res_sim(org_fullname,"Enterococcus faecalis",org_fullname,"",AMP,1,1000,"Ampicillin")
   
@@ -1030,6 +1099,7 @@ TEC_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected teic susceptibility organisms
   df <- df %>%
     mutate(CNS = case_when(org_genus=="Staphylococcus" & org_fullname!="Staphylococcus aureus"~ "CNS",
                            TRUE ~ "N")) %>% 
@@ -1080,6 +1150,7 @@ RIF_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected rif susceptibility in pneumococcus
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",RIF,1,1e4,"Rifampicin")
   
@@ -1116,6 +1187,7 @@ TGC_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected tige-suceptible organisms
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",TGC,1,1e4,"Tigecycline") %>% 
     res_sim(org_fullname,"Staphylococcus",org_fullname,"",TGC,1,1e4,"Tigecycline") %>% 
@@ -1167,6 +1239,7 @@ QDA_simul <- function(df) {
   
   par(mfrow = c(1,1))
   
+  #expected quinu-dalfo s organisms
   df <- df %>%
     res_sim(org_fullname,"Streptococcus pneumoniae",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>% 
     res_sim(org_fullname,"Staphylococcus",org_fullname,"",QDA,1,1e4,"Quinupristin-dalfopristin") %>% 
@@ -1215,8 +1288,13 @@ QDA_simul <- function(df) {
 ###I to R reassignment for sensitivity analysis
 sensitivity_func <- function(df) {
   
+  #select ab columns
   df2 <- df %>% select(PEN:MTR)
+  
+  #replace i with r
   df2[df2=="I"] <- "R"
+  
+  #put back into df
   df[,17:81] <- df2
   
   df
@@ -1226,8 +1304,13 @@ sensitivity_func <- function(df) {
 ###Standardsing ICD versions
 icd_grouping <- function(df) {
   
+  #admission key
   hadm_dates <- hadm %>% select(admittime,hadm_id) %>% distinct(hadm_id,.keep_all = T)
+  
+  #join admission ids
   df %>% left_join(hadm_dates,by="hadm_id") %>% 
+    
+    #replace icd 9 codes with 10 where applicable
     mutate(icd_10 = icd_map(icd_code,from=9,to=10),
            icd_10 = case_when(icd_10=="" ~icd_code, TRUE~icd_10),
            icd_group = substring(icd_10,1,1))
