@@ -330,7 +330,7 @@ assign_bmi_events <- function(df, bmi_df, categories, days, min_events) {
 }
 
 ###Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
-pos_urines <- read_csv("pos_urines_pre_features.csv") #urines cleaned in PDAST_cleaning/preprocessing
+pos_urines <- read_csv("pos_urines_pre_features.csv") #urines cleaned in PDAST_cleaning
 omr <- read_csv("omr.csv") #Measurements e.g., height, weight
 hadm <- read_csv("admissions.csv") #Admission data
 labevents <- read_csv("labevents.csv") #Laboratory tests (non-micro)
@@ -339,11 +339,11 @@ pats <- read_csv("patients.csv") #Patient demographics
 services <- read_csv("services.csv") #Service providers
 d_icd_diagnoses <- read_csv("d_icd_diagnoses.csv") #icd codes
 diagnoses_raw <- read_csv("diagnoses_icd.csv") #icd epi
-diagnoses <- read_csv("diagnoses_clean.csv") #diagnoses cleaned in PDAST_cleaning/preprocessing
-procedures <- read_csv("procedures_clean.csv") #procedures cleaned in PDAST_cleaning/preprocessing
-poe <- read_csv("poe_clean.csv") #care events cleaned in PDAST_cleaning/preprocessing
-micro <- read_csv("micro_clean2.csv") #micro cleaned in PDAST_cleaning/preprocessing
-drugs <- read_csv("drugs_clean.csv") #prescriptions cleaned in PDAST_cleaning/preprocessing
+diagnoses <- read_csv("diagnoses_clean.csv") #diagnoses cleaned in PDAST_cleaning/
+procedures <- read_csv("procedures_clean.csv") #procedures cleaned in PDAST_cleaning
+poe <- read_csv("poe_clean.csv") #care events cleaned in PDAST_cleaning
+micro <- read_csv("micro_clean2.csv") #micro cleaned in PDAST_cleaning
+drugs <- read_csv("drugs_clean.csv") #prescriptions cleaned in PDAST_cleaning
 
 ##Finding previous AST results
 
