@@ -1927,11 +1927,11 @@ def prob_predict(abx,abx_name,to_drop,test_filepath,var_filepath,fit_filepath,
         #add variable tuning label to list
         names.append("Variable_tuning")
 
-        #copy names to probs df columns and export to csv
+        #copy names to probs df columns and export to backup csv
         probs_df.columns = names
         probs_df.to_csv("probs_df.csv")
 
-        #back-up probs_df_final dataframe
+        #probs_df_final dataframe
         probs_df_final = pd.DataFrame()
 
         #filter to ast result that was ht tuned for
@@ -1946,22 +1946,33 @@ def prob_predict(abx,abx_name,to_drop,test_filepath,var_filepath,fit_filepath,
         #set antimicrobial name for this model
         probs_df_final['Antimicrobial'] = abx
 
+    #for binomial prediction
     else:
 
+        #filter test df to selected non-zero features
         x_test = test_df[vari_list]
+
+        #get predicted probabilities and set to probs
         y_pred_probs = model_dict.predict_proba(x_test)
         probs = y_pred_probs
 
+        #set backup probs dict to df and save to csv
         probs_df = pd.DataFrame.from_dict(probs)
-
         probs_df.to_csv("probs_df.csv")
 
+        #set probs final df from probs backup
         probs_df_final = probs_df
+
+        #set columns based on ast classes in chosen model
         probs_df_final.columns = model_dict.classes_
 
+        #add variable tuning column to know which ast result was tuned for
         probs_df_final["Variable tuning"] = model_dict.classes_[1]
 
+        #add specimen/pt id columns back into prob prediction dataframe
         probs_df_final = pd.concat([test_ids, probs_df_final], axis=1)
+
+        #add antibiotic name
         probs_df_final['Antimicrobial'] = abx
 
 ##Out-of-sample time analysis
@@ -1969,34 +1980,49 @@ def prob_predict(abx,abx_name,to_drop,test_filepath,var_filepath,fit_filepath,
 ###Within own time period
 def own_time_per(filename_t):
 
+    #set auc value dict to global
     global aucrocs
     aucrocs = {}
 
+    #iterate over 20 different random seeds for each train-test pair
     for i in list(range(1, 21, 1)):
 
-
+        #set roc list
         rocs = {}
 
+
+        #iterate over antibiotics
         ###############################
 
         #AMPICILLIN
 
         ###############################
 
+        #read in urine df
         urines5 = pd.read_csv(filename_t)
+
+        #ensure age is string
         urines5['standard_age'] = urines5['standard_age'].map(str)
+
+        #set antibiotic as target y
         y = urines5['AMP']
+
+        #dummy vars for features
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
+
+        #put target antibiotic result back
         urines5.insert(0, 'AMP', y)
 
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['AMP']
+
+        #split into target and features
         urines5 = urines5.drop('AMP',axis=1)
         features = urines5.drop('Y',axis=1)
 
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2007,10 +2033,11 @@ def own_time_per(filename_t):
                     scorer='roc_auc_ovr',
                     target_ab = 'Ampicillin')
 
+        #record non-zero features and best c-value
         vari_overall['AMP'] = vari_list
         c_values['AMP'] = c_value
 
-        #LR final run
+        #train and test model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2022,6 +2049,7 @@ def own_time_per(filename_t):
                  ab_of_interest="Ampicillin",
                  av="micro")
 
+        #store classification report for ampicillin in list
         class_reps['AMP'] = class_report
 
         #save fit, variables, and hyperparameters
@@ -2032,6 +2060,7 @@ def own_time_per(filename_t):
         with open(fitname,'wb') as f:
             pickle.dump(model_dict,f)
 
+        #record ampicillin roc curves
         rocs['AMP'] = roc_auc
 
 
@@ -2041,18 +2070,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        #see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SAM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'SAM', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['SAM']
         urines5 = urines5.drop('SAM',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2066,7 +2096,7 @@ def own_time_per(filename_t):
         vari_overall['SAM'] = vari_list
         c_values['SAM'] = c_value
 
-        #LR final run
+        #train and test model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2096,18 +2126,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['TZP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'TZP', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['TZP']
         urines5 = urines5.drop('TZP',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2121,7 +2152,7 @@ def own_time_per(filename_t):
         vari_overall['TZP'] = vari_list
         c_values['TZP'] = c_value
 
-        #LR final run
+        #train and test model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2151,18 +2182,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CZO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CZO', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['CZO']
         urines5 = urines5.drop('CZO',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2176,7 +2208,7 @@ def own_time_per(filename_t):
         vari_overall['CZO'] = vari_list
         c_values['CZO'] = c_value
 
-        #LR final run
+        #train and test model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2206,6 +2238,7 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CRO']
@@ -2231,7 +2264,7 @@ def own_time_per(filename_t):
         vari_overall['CRO'] = vari_list
         c_values['CRO'] = c_value
 
-        #LR final run
+        #train and validate model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2261,18 +2294,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CAZ']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CAZ', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['CAZ']
         urines5 = urines5.drop('CAZ',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2286,7 +2320,7 @@ def own_time_per(filename_t):
         vari_overall['CAZ'] = vari_list
         c_values['CAZ'] = c_value
 
-        #LR final run
+        #train-validate model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2317,18 +2351,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['FEP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'FEP', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['FEP']
         urines5 = urines5.drop('FEP',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2342,7 +2377,7 @@ def own_time_per(filename_t):
         vari_overall['FEP'] = vari_list
         c_values['FEP'] = c_value
 
-        #LR final run
+        #train-validate
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2372,18 +2407,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['MEM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'MEM', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['MEM']
         urines5 = urines5.drop('MEM',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2397,7 +2433,7 @@ def own_time_per(filename_t):
         vari_overall['MEM'] = vari_list
         c_values['MEM'] = c_value
 
-        #LR final run
+        #train-validate run
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2427,18 +2463,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CIP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CIP', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['CIP']
         urines5 = urines5.drop('CIP',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2452,7 +2489,7 @@ def own_time_per(filename_t):
         vari_overall['CIP'] = vari_list
         c_values['CIP'] = c_value
 
-        #LR final run
+        #train and validate model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2482,18 +2519,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['GEN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'GEN', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['GEN']
         urines5 = urines5.drop('GEN',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2507,7 +2545,7 @@ def own_time_per(filename_t):
         vari_overall['GEN'] = vari_list
         c_values['GEN'] = c_value
 
-        #LR final run
+        #train-validate final run
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2537,18 +2575,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SXT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'SXT', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['SXT']
         urines5 = urines5.drop('SXT',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2563,7 +2602,7 @@ def own_time_per(filename_t):
         vari_overall['SXT'] = vari_list
         c_values['SXT'] = c_value
 
-        #LR final run
+        #train and validate model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2593,18 +2632,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['NIT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'NIT', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['NIT']
         urines5 = urines5.drop('NIT',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2618,7 +2658,7 @@ def own_time_per(filename_t):
         vari_overall['NIT'] = vari_list
         c_values['NIT'] = c_value
 
-        #LR final run
+        #train-test model
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2648,18 +2688,19 @@ def own_time_per(filename_t):
 
         ###############################
 
+        # see 'ampicillin' for notes
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['VAN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'VAN', y)
 
-        #set Y variable
+        #set y variable
         urines5['Y'] = urines5['VAN']
         urines5 = urines5.drop('VAN',axis=1)
         features = urines5.drop('Y',axis=1)
 
-        #C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                     ht_features=features,
                     test=0.2,
@@ -2674,7 +2715,7 @@ def own_time_per(filename_t):
         vari_overall['VAN'] = vari_list
         c_values['VAN'] = c_value
 
-        #LR final run
+        #model training and validation
         LR_multi_final(target=urines5["Y"],
                  final_features=features,
                  test=0.2,
@@ -2698,14 +2739,17 @@ def own_time_per(filename_t):
 
         rocs['VAN'] = roc_auc
 
+        #add rocs list for this random seed to aucrocs list
         aucrocs[i] = rocs
 
 ###Across time periods
 def across_time_per(filename_t,filename_t2):
 
+    #set aucrocs list
     global aucrocs
     aucrocs={}
 
+    #iterate over 20 seeds
     for i in list(range(1,21,1)):
 
         rocs = {}
@@ -2716,35 +2760,45 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # read urines for first time period train-test df from csv
         urines5 = pd.read_csv(filename_t)
+
+        #convert age vsar to string
         urines5['standard_age'] = urines5['standard_age'].map(str)
+
+        #set ampicillin target var
         y = urines5['AMP']
+
+        #dummy feature variables
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
+
+        #put ampicillin target back
         urines5.insert(0, 'AMP', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['AMP']
+
+        #split target and features
         urines5 = urines5.drop('AMP', axis=1)
         features = urines5.drop('Y', axis=1)
 
+        #read in urines filtered to 2nd time period and repeat preprocessing
         urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['AMP']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'AMP', y)
-
-        # set Y variable
         urines6['Y'] = urines6['AMP']
         urines6 = urines6.drop('AMP', axis=1)
         features2 = urines6.drop('Y', axis=1)
 
+        #set any discrepant columns to false to standardise features between time periods
         missing_columns = set(features.columns) - set(features2.columns)
         for col in missing_columns:
             features2[col] = False
-
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        # c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -2755,10 +2809,11 @@ def across_time_per(filename_t,filename_t2):
                           scorer='roc_auc_ovr',
                           target_ab='Ampicillin')
 
+        #record non-zero variables and best c value
         vari_overall['AMP'] = vari_list
         c_values['AMP'] = c_value
 
-        # LR final run
+        #traina and validate model
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -2772,6 +2827,7 @@ def across_time_per(filename_t,filename_t2):
                        target2=urines6["Y"],
                        test_datf=features2)
 
+        #populate classification report for ampicillin
         class_reps['AMP'] = class_report
 
         # save fit, variables, and hyperparameters
@@ -2782,6 +2838,7 @@ def across_time_per(filename_t,filename_t2):
         with open(fitname, 'wb') as f:
             pickle.dump(model_dict, f)
 
+        #record ampicillin auroc in sublist
         rocs['AMP'] = roc_auc
 
         ###############################
@@ -2790,13 +2847,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        #see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SAM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'SAM', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['SAM']
         urines5 = urines5.drop('SAM', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -2807,7 +2865,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'SAM', y)
 
-        # set Y variable
+        # set y variable for 2nd time period
         urines6['Y'] = urines6['SAM']
         urines6 = urines6.drop('SAM', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -2818,7 +2876,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -2832,7 +2890,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['SAM'] = vari_list
         c_values['SAM'] = c_value
 
-        # LR final run
+        #train and validate
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -2864,13 +2922,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['TZP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'TZP', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['TZP']
         urines5 = urines5.drop('TZP', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -2881,7 +2940,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'TZP', y)
 
-        # set Y variable
+        # set y variable for time period 2
         urines6['Y'] = urines6['TZP']
         urines6 = urines6.drop('TZP', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -2892,7 +2951,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -2906,7 +2965,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['TZP'] = vari_list
         c_values['TZP'] = c_value
 
-        # LR final run
+        #traina nd validate
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -2938,13 +2997,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CZO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CZO', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['CZO']
         urines5 = urines5.drop('CZO', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -2955,7 +3015,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'CZO', y)
 
-        # set Y variable
+        # set y variable for time period 2
         urines6['Y'] = urines6['CZO']
         urines6 = urines6.drop('CZO', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -2966,7 +3026,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -2980,7 +3040,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['CZO'] = vari_list
         c_values['CZO'] = c_value
 
-        # LR final run
+        #final train-valid run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3012,13 +3072,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CRO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CRO', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['CRO']
         urines5 = urines5.drop('CRO', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3029,7 +3090,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'CRO', y)
 
-        # set Y variable
+        # set y variable for 2nd time period
         urines6['Y'] = urines6['CRO']
         urines6 = urines6.drop('CRO', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3040,7 +3101,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3054,7 +3115,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['CRO'] = vari_list
         c_values['CRO'] = c_value
 
-        # LR final run
+        #final train-validate run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3086,13 +3147,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CAZ']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CAZ', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['CAZ']
         urines5 = urines5.drop('CAZ', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3103,7 +3165,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'CAZ', y)
 
-        # set Y variable
+        # set y variable for 2nd time period
         urines6['Y'] = urines6['CAZ']
         urines6 = urines6.drop('CAZ', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3114,7 +3176,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3128,7 +3190,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['CAZ'] = vari_list
         c_values['CAZ'] = c_value
 
-        # LR final run
+        #train-validate run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3160,13 +3222,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['FEP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'FEP', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['FEP']
         urines5 = urines5.drop('FEP', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3177,7 +3240,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'FEP', y)
 
-        # set Y variable
+        # set y variable for time period 2
         urines6['Y'] = urines6['FEP']
         urines6 = urines6.drop('FEP', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3188,7 +3251,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3202,7 +3265,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['FEP'] = vari_list
         c_values['FEP'] = c_value
 
-        # LR final run
+        #train-validate
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3234,13 +3297,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['MEM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'MEM', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['MEM']
         urines5 = urines5.drop('MEM', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3251,7 +3315,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'MEM', y)
 
-        # set Y variable
+        # set tiem period 2 variable
         urines6['Y'] = urines6['MEM']
         urines6 = urines6.drop('MEM', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3262,7 +3326,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3276,7 +3340,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['MEM'] = vari_list
         c_values['MEM'] = c_value
 
-        # LR final run
+        #train-valid run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3308,13 +3372,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CIP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'CIP', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['CIP']
         urines5 = urines5.drop('CIP', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3325,7 +3390,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'CIP', y)
 
-        # set Y variable
+        # set time period 2 y variable
         urines6['Y'] = urines6['CIP']
         urines6 = urines6.drop('CIP', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3336,7 +3401,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3350,7 +3415,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['CIP'] = vari_list
         c_values['CIP'] = c_value
 
-        # LR final run
+        #training and valdiation
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3382,13 +3447,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['GEN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'GEN', y)
 
-        # set Y variable
+        # set y var
         urines5['Y'] = urines5['GEN']
         urines5 = urines5.drop('GEN', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3399,7 +3465,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'GEN', y)
 
-        # set Y variable
+        # set poeriod 2 y var
         urines6['Y'] = urines6['GEN']
         urines6 = urines6.drop('GEN', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3410,7 +3476,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3424,7 +3490,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['GEN'] = vari_list
         c_values['GEN'] = c_value
 
-        # LR final run
+        #final model run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3456,13 +3522,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SXT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'SXT', y)
 
-        # set Y variable
+        #time period 1 var y
         urines5['Y'] = urines5['SXT']
         urines5 = urines5.drop('SXT', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3473,7 +3540,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'SXT', y)
 
-        # set Y variable
+        #set y var for time period 2
         urines6['Y'] = urines6['SXT']
         urines6 = urines6.drop('SXT', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3484,7 +3551,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparam tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3499,7 +3566,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['SXT'] = vari_list
         c_values['SXT'] = c_value
 
-        # LR final run
+        #training and validation
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3531,13 +3598,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['NIT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'NIT', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['NIT']
         urines5 = urines5.drop('NIT', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3548,7 +3616,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'NIT', y)
 
-        # set Y variable
+        # set y variable for period 2
         urines6['Y'] = urines6['NIT']
         urines6 = urines6.drop('NIT', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3559,7 +3627,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3573,7 +3641,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['NIT'] = vari_list
         c_values['NIT'] = c_value
 
-        # LR final run
+        #final training and validation run
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3605,13 +3673,14 @@ def across_time_per(filename_t,filename_t2):
 
         ###############################
 
+        # see notes for 'ampicillin'
         urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['VAN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
         urines5.insert(0, 'VAN', y)
 
-        # set Y variable
+        # set y variable
         urines5['Y'] = urines5['VAN']
         urines5 = urines5.drop('VAN', axis=1)
         features = urines5.drop('Y', axis=1)
@@ -3622,7 +3691,7 @@ def across_time_per(filename_t,filename_t2):
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
         urines6.insert(0, 'VAN', y)
 
-        # set Y variable
+        # set y variable for training and validation
         urines6['Y'] = urines6['VAN']
         urines6 = urines6.drop('VAN', axis=1)
         features2 = urines6.drop('Y', axis=1)
@@ -3633,7 +3702,7 @@ def across_time_per(filename_t,filename_t2):
 
         features2 = features2[features.columns]
 
-        # C hyperparameter tuning and feature selection
+        #c hyperparameter tuning and feature selection
         lr_hyp_tune_feats_t(target=urines5["Y"],
                           ht_features=features,
                           test=0.2,
@@ -3648,7 +3717,7 @@ def across_time_per(filename_t,filename_t2):
         vari_overall['VAN'] = vari_list
         c_values['VAN'] = c_value
 
-        # LR final run
+        #final training and validation
         LR_multi_final_t(target=urines5["Y"],
                        final_features=features,
                        test=0.2,
@@ -3674,6 +3743,7 @@ def across_time_per(filename_t,filename_t2):
 
         rocs['VAN'] = roc_auc
 
+        #add aurocs for this seed
         aucrocs[i] = rocs
 
 ##Wrapping functions
@@ -3681,22 +3751,31 @@ def across_time_per(filename_t,filename_t2):
 ###Primary test/train/validate
 def train_test_validate_main(csv,ab,abx,antibiotic,type=''):
 
+    #set global env objects
     global features
     global urines5
 
+    #read in urines df from csv
     urines5 = pd.read_csv(csv)
+
+    #ensure age is string
     urines5['standard_age'] = urines5['standard_age'].map(str)
+
+    #get target ast outcome for antibiotic of choice
     y = urines5[abx]
+
+    #dummy variables for predictor feature classes
     urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
+
+    #put antibiotic ast outcome back
     urines5.insert(0, abx, y)
 
-
-    #set Y variable
+    #set y ast result variable for antibiotic of choice
     urines5['Y'] = urines5[abx]
     urines5 = urines5.drop(abx,axis=1)
     features = urines5.drop('Y',axis=1)
 
-    #C hyperparameter tuning and feature selection
+    #c hyperparameter tuning and feature selection
     lr_hyp_tune_feats(target=urines5["Y"],
                 ht_features=features,
                 test=0.2,
@@ -3708,10 +3787,11 @@ def train_test_validate_main(csv,ab,abx,antibiotic,type=''):
                 target_ab = antibiotic,
                       analysis_type=type)
 
+    #get variable lists and c values for antibiotic of choice
     vari_overall[abx] = vari_list
     c_values[abx] = c_value
 
-    #LR final run
+    #final train-validate run for antibiotic of choice
     LR_multi_final(target=urines5["Y"],
              final_features=features,
              test=0.2,
@@ -3724,6 +3804,7 @@ def train_test_validate_main(csv,ab,abx,antibiotic,type=''):
              av="micro",
                    analysis_type=type)
 
+    #record antibiotic classification report
     class_reps[abx] = class_report
 
     #save fit, variables, and hyperparameters
@@ -3735,23 +3816,29 @@ def train_test_validate_main(csv,ab,abx,antibiotic,type=''):
 ###Multinomial test/train/validate
 def train_test_validate_multinomial(csv,ab,abx,antibiotic):
 
+    #set global objects
     global features
     global urines5
 
+    #read-in urine csv
     urines5 = pd.read_csv(csv)
+
+    #set age as string
     urines5['standard_age'] = urines5['standard_age'].map(str)
+
+    #y value for antibiotic of choice
     y = urines5[abx]
+
+    #set dummy variables for features and rejoin to outcome
     urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
     urines5.insert(0, abx, y)
 
-
-    #set Y variable
+    #set y variable
     urines5['Y'] = urines5[abx]
     urines5 = urines5.drop(abx,axis=1)
     features = urines5.drop('Y',axis=1)
 
-
-    #C hyperparameter tuning and feature selection
+    #c hyperparameter tuning and feature selection for ab of choice
     lr_hyp_tune_feats2(target=urines5["Y"],
                 ht_features=features,
                 test=0.2,
@@ -3762,10 +3849,11 @@ def train_test_validate_multinomial(csv,ab,abx,antibiotic):
                 scorer='roc_auc_ovr',
                 target_ab = antibiotic)
 
+    #put ab features and c value into list
     vari_overall[abx] = vari_list
     c_values[abx] = c_value
 
-    #LR final run
+    #final multinomial validation for ab of interest
     LR_multi_final(target=urines5["Y"],
              final_features=features,
              test=0.2,
@@ -3778,6 +3866,7 @@ def train_test_validate_multinomial(csv,ab,abx,antibiotic):
              av="micro",
                    analysis_type="multinomial")
 
+    #get classificatio  report
     class_reps[abx] = class_report
 
     #save fit, variables, and hyperparameters
@@ -3789,16 +3878,29 @@ def train_test_validate_multinomial(csv,ab,abx,antibiotic):
 ###Model fairness analysis
 def iterate_mod_fairness(df,feature_df, antibiotic,abx,ab):
 
+    #set global objects for presence and absence of protected characteristics
     global overallfairT
     global overallfairF
 
-    ####Initialising reference objects for fairness analysis
+    #gender column(s) of interest
     gen_cols = ['MALE']
+
+    #age columns of interest
     age_cols = [col for col in dummy_df.columns if 'standard_age' in col]
+
+    #race columns of interest
     race_cols = [col for col in dummy_df.columns if 'race' in col]
+
+    #language columns of interest
     language_cols = [col for col in dummy_df.columns if 'language' in col]
+
+    #insurance type columns of interest
     insurance_cols = [col for col in dummy_df.columns if 'insurance' in col]
+
+    #marital status columns of interest
     marital_cols = [col for col in dummy_df.columns if 'marital' in col]
+
+    #compose protected variables list from the above
     prot_vars.extend(gen_cols)
     prot_vars.extend(age_cols)
     prot_vars.extend(race_cols)
@@ -3806,10 +3908,14 @@ def iterate_mod_fairness(df,feature_df, antibiotic,abx,ab):
     prot_vars.extend(insurance_cols)
     prot_vars.extend(marital_cols)
 
+    #initialise empty dictionaries
     fair_classrepsT = {}
     fair_classrepsF = {}
 
+    #iterate over protected variables
     for protvar in prot_vars:
+
+        #run model fairness analysis for presence of each protected variable of interest
         mod_fairness(protvarv=protvar,
                      chosen_model=fairness_model,
                      target=df["Y"],
@@ -3820,8 +3926,10 @@ def iterate_mod_fairness(df,feature_df, antibiotic,abx,ab):
                      av="micro",
                      Bool=True)
 
+        #get classification report for each protected variable
         fair_classrepsT[protvar] = class_report
 
+        #re-run but for absence of the protected variable of interest
         mod_fairness(protvarv=protvar,
                      chosen_model=fairness_model,
                      target=df["Y"],
@@ -3832,6 +3940,7 @@ def iterate_mod_fairness(df,feature_df, antibiotic,abx,ab):
                      av="micro",
                      Bool=False)
 
+        #populate classification report for that protected variable
         fair_classrepsF[protvar] = class_report
 
     with open(abx + 'fairF.pickle', 'wb') as f:
@@ -3839,12 +3948,14 @@ def iterate_mod_fairness(df,feature_df, antibiotic,abx,ab):
     with open(abx + 'fairT.pickle', 'wb') as f:
         pickle.dump(fair_classrepsT, f)
 
+    #populate lists for presence and absence of protected characteristic of interest
     overallfairT[ab] = fair_classrepsT
     overallfairF[ab] = fair_classrepsF
 
 ###Stability assessment
 def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
 
+        #set empty global dfs for 9 train-test splits of interest
         global p1
         global p2
         global p3
@@ -3864,7 +3975,10 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
         p8 = pd.DataFrame()
         p9 = pd.DataFrame()
 
+        #iterate over 100 random seeds for each training dataset size
         for i in list(range(1, 101, 1)):
+
+            #run small dataset stability prediction
             mod_stab_pred(target=df["Y"],
                           final_features=feature_df,
                           test=0.2,
@@ -3877,6 +3991,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
                           av="micro",
                           to_drop=to_drop)
 
+            #populate 0.84:0.16 train-test performance df
             pointtwo = pd.DataFrame.from_dict(size_probs['0.84'])
             pointtwo.columns = classes['0.84']
             pointtwob = pd.DataFrame.from_dict(size_probs['actval0.84'])
@@ -3886,6 +4001,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointtwo['model'] = i
             p2 = pd.concat([p2, pointtwo])
 
+            #populate 0.86:14 train-test performance df
             pointthree = pd.DataFrame.from_dict(size_probs['0.86'])
             pointthree.columns = classes['0.86']
             pointthreeb = pd.DataFrame.from_dict(size_probs['actval0.86'])
@@ -3895,6 +4011,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointthree['model'] = i
             p3 = pd.concat([p3, pointthree])
 
+            # populate 0.88:12 train-test performance df
             pointfour = pd.DataFrame.from_dict(size_probs['0.88'])
             pointfour.columns = classes['0.88']
             pointfourb = pd.DataFrame.from_dict(size_probs['actval0.88'])
@@ -3904,6 +4021,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointfour['model'] = i
             p4 = pd.concat([p4, pointfour])
 
+            # populate 0.90:10 train-test performance df
             pointfive = pd.DataFrame.from_dict(size_probs['0.9'])
             pointfive.columns = classes['0.9']
             pointfiveb = pd.DataFrame.from_dict(size_probs['actval0.9'])
@@ -3913,6 +4031,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointfive['model'] = i
             p5 = pd.concat([p5, pointfive])
 
+            # populate 0.92:0.08 train-test performance df
             pointsix = pd.DataFrame.from_dict(size_probs['0.92'])
             pointsix.columns = classes['0.92']
             pointsixb = pd.DataFrame.from_dict(size_probs['actval0.92'])
@@ -3922,6 +4041,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointsix['model'] = i
             p6 = pd.concat([p6, pointsix])
 
+            # populate 0.94:0.06 train-test performance df
             pointseven = pd.DataFrame.from_dict(size_probs['0.94'])
             pointseven.columns = classes['0.94']
             pointsevenb = pd.DataFrame.from_dict(size_probs['actval0.94'])
@@ -3931,6 +4051,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointseven['model'] = i
             p7 = pd.concat([p7, pointseven])
 
+            # populate 0.96:0.04 train-test performance df
             pointeight = pd.DataFrame.from_dict(size_probs['0.96'])
             pointeight.columns = classes['0.96']
             pointeightb = pd.DataFrame.from_dict(size_probs['actval0.96'])
@@ -3940,6 +4061,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointeight['model'] = i
             p8 = pd.concat([p8, pointeight])
 
+            # populate 0.98:0.02 train-test performance df
             pointnine = pd.DataFrame.from_dict(size_probs['0.98'])
             pointnine.columns = classes['0.98']
             pointnineb = pd.DataFrame.from_dict(size_probs['actval0.98'])
@@ -3949,6 +4071,7 @@ def iter_stab_pred(df,feature_df,Antimicrobial_agent,abx):
             pointnine['model'] = i
             p9 = pd.concat([p9, pointnine])
 
+            #write stability analysis dataframes to csvs
             p2.to_csv("p2_"+abx+".csv")
             p3.to_csv("p3_"+abx+".csv")
             p4.to_csv("p4_"+abx+".csv")
