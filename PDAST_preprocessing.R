@@ -5,14 +5,20 @@
 ###Collapse multiple organisms to single resistance result per sample
 res_collapse <- function(df,col_name) { 
   
+  #quosure
   col_name <- enquo(col_name)
   
+  #replace ast results with ranking
   df %>% group_by(micro_specimen_id) %>% 
     mutate(!!col_name := case_when(!!col_name=="R"~3,
                                    !!col_name=="I"~2,
                                    !!col_name=="S"~1,
                                    !!col_name=="NT"~0)) %>% 
+    
+    #replace multiple results with maximum ranking
     mutate(!!col_name := max(!!col_name)) %>%
+    
+    #revert rankings to ast results
     mutate(!!col_name := case_when(!!col_name==3~"R",
                                    !!col_name==2~"I",
                                    !!col_name==1~"S",
@@ -169,9 +175,16 @@ collapser <- function(df) {
 ###Converting multinomial resistance variables to binary variables (full df)
 binarise_full_df <- function(df,NT_val,I_val) {
   
+  #select antibiotic columns
   urref <- df %>% select(AMP:VAN)
+  
+  #replace not tested with result of choice
   urref[urref=="NT"] <- NT_val
+  
+  #replace intermediate with result of choice
   urref[urref=="I"] <- I_val
+  
+  #put back into df
   df[,1:13] <- urref
   
   df
@@ -191,8 +204,13 @@ binariser <- function(df,NT_class,I_class) {
 ###Assigning splitting index
 split_indexer <- function(df,size,seed_no) {
   
+  #get nearest n below sample proportion size
   smp_size <- floor(size * nrow(df))
+  
+  #set seed
   set.seed(seed_no)
+  
+  #get train index by sampling n rows
   train_ind <- sample(seq_len(nrow(df)), size = smp_size)
   
 }
@@ -200,23 +218,38 @@ split_indexer <- function(df,size,seed_no) {
 ###Dataset preparation for full AST results sensitivity analysis
 ml_prep <- function(df,abx) {
   
+  #get rid of septrin and vanc i results
   df <- df %>% filter(SXT!="I") %>% filter(VAN!="I")
-  df <- df %>% filter(!grepl("Enterococcus",org_fullname)) #remove enterococci
+  
+  #remove enterococci
+  df <- df %>% filter(!grepl("Enterococcus",org_fullname))
+  
+  #list of intrinsic resistances
   reskey <- AMR::intrinsic_resistant
   colnames(reskey) <- c("org_name","ab")
-  df <- df %>% anti_join(reskey %>% filter(ab==abx),by="org_name") #REMOVE INTRINSICALLY RESISTANT ORGANISMS
+  
+  #remove organisms with intrinsic resistance
+  df <- df %>% anti_join(reskey %>% filter(ab==abx),by="org_name")
   print("Collapsing...")
-  df <- df %>% collapser() #COLLAPSE MULTIPLE GROWTH
-  tibble(df %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY ML VARIABLES
+  
+  #collapse multiple growth (see above)
+  df <- df %>% collapser()
+  
+  #select only feature and outcome variables
+  tibble(df %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus))
   
 }
 
 ###Variable, selection, binarising and saving for AST sensitivity analysis
 mod_var_select_save <- function(df,filename) {
   
-  df <- tibble(df %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus)) #SELECT ONLY MODEL VARIABLES
+  #select feature and outcome variables
+  df <- tibble(df %>% ungroup() %>% select(AMP:VAN,pAMPr:org_fullname_Staphylococcus.aureus))
+  
+  #binarise multinomial results to resistant and susceptible
   df <- df %>% binariser("R","S")
   
+  #write to csv
   write_csv(df,filename)
   
   df
@@ -226,11 +259,19 @@ mod_var_select_save <- function(df,filename) {
 ###Dataset summary for study flow chart
 dataset_summary <- function(df,mic_dataset) {
 
+  #get n patients (raw)
   patients <- nrow(df %>% filter(!is.na(subject_id)) %>% distinct(subject_id))
+  
+  #get n specimens (raw)
   specimens <- nrow(df %>% filter(!is.na(micro_specimen_id)) %>% distinct(micro_specimen_id))
+  
+  #get n patient (final)
   pats_valid <- ceiling(nrow(df %>% filter(!is.na(subject_id)) %>% distinct(subject_id)) *0.2)
+  
+  #get n specimens (final)
   specs_valid <- ceiling(nrow(df %>% filter(!is.na(micro_specimen_id)) %>% distinct(micro_specimen_id)) *0.2)
   
+  #print messages with summaries
   if (mic_dataset=="raw") {
     abx <- nrow(df %>% filter(!is.na(ab_name)) %>% distinct(ab_name))
     glue("The {mic_dataset} dataset contains data for {patients} patients,
@@ -441,18 +482,26 @@ desc_summary <- function(df,pats_df,hadm_df) {
 }
 sir_summary <- function(df) {
   
-  ####Access antimicrobial susceptibility rates
+  #s/i/r calculation sub-function
   sir_rate <- function(df,ab) {
+    
+    #quosure
     ab <- enquo(ab)
+    
+    #count s/i/r
     df %>% count(!!ab) %>% mutate(!!ab:=factor(!!ab,
                                                levels=c("S","I","R"))) %>% 
       arrange(!!ab) %>% 
+      
+      #calculate n and percentages of each and paste for tabular display
       mutate(
         `% of specimens`=round((n/nrow(df %>% distinct(micro_specimen_id)))*100,1),
         `n (% of specimens)`= paste0(
           as.character(n)," (",as.character(`% of specimens`),")"
         )) %>% select(!!ab,`n (% of specimens)`)
   }
+  
+  #access category antimicrobial susceptibility rates
   amp_sir <- df %>% sir_rate(AMP) 
   sam_sir <- df %>% sir_rate(SAM)
   czo_sir <- df %>% sir_rate(CZO)
@@ -460,6 +509,7 @@ sir_summary <- function(df) {
   sxt_sir <- df %>% sir_rate(SXT)
   nit_sir <- df %>% sir_rate(NIT)
   
+  #print outputs
   print(amp_sir)
   print(sam_sir)
   print(czo_sir)
@@ -467,6 +517,7 @@ sir_summary <- function(df) {
   print(sxt_sir)
   print(nit_sir)
   
+  #write to csvs
   filename <- glue("{deparse(substitute(df))}_amp_sir.csv")
   write_csv(amp_sir, filename)
   filename <- glue("{deparse(substitute(df))}_sam_sir.csv")
@@ -480,7 +531,7 @@ sir_summary <- function(df) {
   filename <- glue("{deparse(substitute(df))}_nit_sir.csv")
   write_csv(nit_sir, filename)
   
-  ####Watch antimicrobial susceptibility rates
+  #watch category antimicrobial susceptibility rates
   tzp_sir <- df %>% sir_rate(TZP)
   cro_sir <- df %>% sir_rate(CRO)
   caz_sir <- df %>% sir_rate(CAZ)
@@ -488,6 +539,7 @@ sir_summary <- function(df) {
   mem_sir <- df %>% sir_rate(MEM) 
   cip_sir <- df %>% sir_rate(CIP)
   
+  #print outputs
   print(tzp_sir)
   print(cro_sir)
   print(caz_sir)
@@ -495,6 +547,7 @@ sir_summary <- function(df) {
   print(mem_sir)
   print(cip_sir)
   
+  #write to csvs
   filename <- glue("{deparse(substitute(df))}_tzp_sir.csv")
   write_csv(tzp_sir, filename)
   filename <- glue("{deparse(substitute(df))}_cro_sir.csv")
@@ -591,6 +644,7 @@ for (i in seq_along(antimicrobials)) {
   
   df1 <- urines_ref %>% ml_prep(antimicrobials[i])
   
+  #make and assign df for each antimicrobial to facilitate tailored analysis (see below)
   new_name <- paste0(newdf_prefix, "_", antimicrobials[i])
   assign(new_name, df1, envir = .GlobalEnv)
   
