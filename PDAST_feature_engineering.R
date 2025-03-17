@@ -5,24 +5,46 @@
 ###Assigning previous event feature variable
 prev_event_assign <- function(df,B_var,event_df,event_var,no_days,no_events) {
   
+  #charttime to posix in target df
   df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
   
+  #prepare event df for binding
   event_df %>%
+    
+    #tidy quosure of event of interest
     mutate(event = {{event_var}}) %>% 
+    
+    #select pt id, quoted event and charttime as admittime
     select('subject_id', "event", charttime = 'admittime') %>% 
+    
+    #charttime in event df to posix to match target df
     mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S')) %>% 
+    
+    #remove nas
     filter(!is.na(event)) %>% 
+    
+    #bind event df to target df
     bind_rows(df) %>% 
+    
+    #set presence and absence of event
     mutate(event = case_when(!is.na(event) ~ "Yes",
                              TRUE ~ "No")) %>% 
+    
+    #run mimer check for previous events
     MIMER::check_previous_events(cols="event", sort_by_col='charttime',
                                  patient_id_col='subject_id', event_indi_value='Yes',
                                  new_col_prefix="pr_",
                                  time_period_in_days = no_days, minimum_prev_events = no_events,
                                  default_na_date = '9999-12-31 00:00:00') %>% 
+    
+    #set new variable
     mutate({{B_var}} := case_when(pr_event==TRUE ~ TRUE,
                                   TRUE ~ FALSE)) %>%
+    
+    #remove temporary cols
     mutate(event = NULL, pr_event=NULL) %>% 
+    
+    #filter back to original urine dataset
     filter(grepl('URINE', spec_type_desc))
   
 }
@@ -30,24 +52,46 @@ prev_event_assign <- function(df,B_var,event_df,event_var,no_days,no_events) {
 ###Assigning previous event type feature variable
 prev_event_type_assign <- function(df,B_var,event_df,event_var,event_type,no_days,no_events) {
   
+  #charttime to posix
   df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
   
+  #prepare event df
   event_df %>%
+    
+    #quosure event var
     mutate(event = {{event_var}}) %>% 
+    
+    #select vars of interest
     select('subject_id', "event", charttime = 'admittime') %>% 
+    
+    #charttime to posix
     mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S')) %>% 
+    
+    #filter to event of interest and type
     filter(grepl(event_type, event)) %>%
+    
+    #bind to target df
     bind_rows(df) %>% 
+    
+    #yes and no for presence and absence
     mutate(event = case_when(!is.na(event) ~ "Yes",
                              TRUE ~ "No")) %>% 
+    
+    #mimer check for prev events
     MIMER::check_previous_events(cols="event", sort_by_col='charttime',
                                  patient_id_col='subject_id', event_indi_value='Yes',
                                  new_col_prefix="pr_",
                                  time_period_in_days = no_days, minimum_prev_events = no_events,
                                  default_na_date = '9999-12-31 00:00:00') %>% 
+   
+    #make new variable
     mutate({{B_var}} := case_when(pr_event==TRUE ~ TRUE,
                                   TRUE ~ FALSE)) %>%
+    
+    #remove temporary cols
     mutate(event = NULL, pr_event=NULL) %>% 
+    
+    #filter back to urine df
     filter(grepl('URINE', spec_type_desc))
   
   
@@ -55,27 +99,55 @@ prev_event_type_assign <- function(df,B_var,event_df,event_var,event_type,no_day
 
 ###Assigning "NT" variable to relevant NAs in microbiology dataframe
 NT_assigner <- function(df) {
+  
+  #nas and non-nas
   micaborgs <- df %>% filter(!is.na(org_name))
   micabnas <- df %>% filter(is.na(org_name))
+  
+  #ab columns
   micaborgab <- micaborgs %>% select(PEN:MTR)
+  
+  #add nt into na slots
   micaborgab[is.na(micaborgab)] <- "NT"
+  
+  #put back into df
   micaborgs[,17:81] <- micaborgab
+  
+  #bind back into df
   df2 <- tibble(rbind(micaborgs,micabnas))
+  
+  #rename admittime to charttime to facilitate prev event functions
   df2 %>% rename(admittime = "charttime")
 }
 
 ###Applying previous AST result search across multiple result types
 prev_AST_applier <- function(df1,micro_data,suffix,result,timeframe=365,n_events=1) {
   
+  #paste prefix and ast result suffix for previous onto ab list
   params <- paste0("p", antibiotics, suffix)
   
+  #apply prev event sub-function
   apply_prev_event <- function(df, param, antibiotic) {
+    
     df %>%
+      
+      #run prev ast result check for chosen antibiotic
       prev_event_type_assign(!!sym(param), micro_data, !!sym(antibiotic), result, timeframe, n_events)
-  }
+  
+    }
+  
+  #use reduce to repeatedly replace urine target df
   df1 <- reduce(seq_along(antibiotics), function(df, i) {
+    
+    #apply 'apply prev event' across ab list and new var names (params)
     apply_prev_event(df, params[i], antibiotics[i])
-  }, .init = df1) %>%
+    
+    },
+    
+    #reinitialise target df to add new var for each loop
+    .init = df1) %>%
+    
+    #ungroup following mimer application
     ungroup()
   
 }
@@ -83,25 +155,46 @@ prev_AST_applier <- function(df1,micro_data,suffix,result,timeframe=365,n_events
 ###Assigning previous antimicrobial treatment variable
 prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_events) {
   
+  #charttime to posix
   ur_df <- df %>% mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S'))
   
+  #quosure ab group
   abx_groupvar <- enquo(abx_groupvar)
   
+  #prepare drug df for binding
   drug_df %>%
+    
+    #select pt id and drug starttime
     select('subject_id', ab_name,charttime='starttime') %>%
+    
+    #charttime to posix
     mutate(charttime=as.POSIXct(charttime,format='%Y-%m-%d %H:%M:%S')) %>% 
+    
+    #filter to antibiotic of interst
     filter(grepl(glue("{abx}"), !!abx_groupvar)) %>% 
+    
+    #bind prescriptions to urine df
     bind_rows(ur_df) %>% 
+    
+    #presence or absence of prescription
     mutate(abx_treatment = case_when(!is.na(ab_name) ~ "Yes",
                                      TRUE ~ "No")) %>% 
+    
+    #mimer to find previous prescriptions
     MIMER::check_previous_events(cols="abx_treatment", sort_by_col='charttime',
                                  patient_id_col='subject_id', event_indi_value='Yes',
                                  new_col_prefix="pr_rx_",
                                  time_period_in_days = no_days, minimum_prev_events = no_events,
                                  default_na_date = '9999-12-31 00:00:00') %>% 
+    
+    #make new previous treatment variable
     mutate({{B_var}} := case_when(pr_rx_abx_treatment==TRUE ~ TRUE,
                                   TRUE ~ FALSE)) %>% 
+    
+    #remove temporary columns
     mutate(abx_treatment=NULL,pr_rx_abx_treatment=NULL) %>% 
+    
+    #filter back to urine dataframe
     filter(grepl('URINE', spec_type_desc))
   
 }
@@ -109,13 +202,19 @@ prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_even
 ###Finding abnormal inflammatory markers on day of urine test
 labevent_search <- function(df,search_term,feature_name) {
   
+  #quosure
   feature_name <- enquo(feature_name)
   
+  #filter lab tests by term of interest
   filter_term <- labitems %>%
     filter(grepl(search_term,label,ignore.case=T)) %>% 
     count(itemid) %>% arrange(n) %>% slice(1) %>% select(itemid) %>% unlist()
+  
+  #search according to precise term found
   filtered_df <- labevents %>% filter(itemid==filter_term) %>% 
     filter(!is.na(valuenum)) %>% rename(admittime="charttime")
+  
+  #look for abnormal test in the last 24 hours
   df %>% 
     prev_event_type_assign(!!feature_name,filtered_df,flag,"abnormal",1,1) %>%
     ungroup()
@@ -125,11 +224,18 @@ labevent_search <- function(df,search_term,feature_name) {
 ###Assigning gender feature variable
 gender_assign <- function(df,B_var,gender_df) {
   
+  #make gender key df
   gender_df %>%
     select('subject_id', 'gender') %>%
+    
+    #join to target df
     right_join(df) %>%
+    
+    #name new variable
     mutate({{B_var}} := case_when(gender=="M" ~ TRUE,
                                   TRUE ~ FALSE)) %>%
+    
+    #remove bound variable
     mutate(gender=NULL)
   
 }
@@ -137,12 +243,18 @@ gender_assign <- function(df,B_var,gender_df) {
 ###Finding patient demographic characeristics
 demographic_assign <- function(df,demographic) {
   
+  #quosure
   demographic <- enquo(demographic)
   
+  #admission demographic key
   hadm_demographic <- hadm %>%
     select(subject_id,!!demographic) %>%
     distinct(subject_id,.keep_all = T)
+  
+  #bind key to df
   df %>% left_join(hadm_demographic,by="subject_id") %>%
+    
+    #replace nas with unknown
     mutate(!!demographic:=case_when(is.na(!!demographic) ~ "UNKNOWN",
                                     TRUE~!!demographic))
   
@@ -151,16 +263,33 @@ demographic_assign <- function(df,demographic) {
 ###Applying ICD-1O code search across multiple ICD-10 code prefixes
 prev_ICD_applier <- function(df,icd_df,prefix,codes) {
   
+  #make applier sub-function
   apply_prev_event_assignments <- function(df, code) {
+    
+    #paste prefix to icd code
     param_name <- paste0(prefix, code)
+    
+    #check for icd diagnosis in the last year
     df %>%
       prev_event_type_assign(!!sym(param_name), icd_df, icd_group, code, 365, 1)
-  }
+    
+    }
   
+  #use reduce to update urines df
   pos_urines <- reduce(codes, function(df, code) {
+    
+    #apply prev event check across list of icd-10 codes
     apply_prev_event_assignments(df, code)
-  }, .init = pos_urines) %>%
+    
+    },
+    
+    #re-initialise urines df to update in each loop
+    .init = pos_urines) %>%
+    
+    #no ICD-U codes so set to false
     mutate(pDIAG_U = FALSE) %>%
+    
+    #ungroup after applying mimer function
     ungroup()
   
 }
@@ -168,6 +297,7 @@ prev_ICD_applier <- function(df,icd_df,prefix,codes) {
 ###Checking for previous care events
 care_event_assigner <- function(df,search_df,search_term,search_column,feature_name,event_date_col,timeframe,n_events=1) {
   
+  #quosure
   feature_name <- enquo(feature_name)
   search_column <- enquo(search_column)
   
@@ -181,13 +311,26 @@ care_event_assigner <- function(df,search_df,search_term,search_column,feature_n
 
 ###Applying BMI category search across multiple categories
 assign_bmi_events <- function(df, bmi_df, categories, days, min_events) {
+  
+  #repeatedly apply function along loop
   reduce(categories, function(acc, category) {
+    
+    #append p for previous to element in bmi category list
     param <- paste0("p", category)
+    
+    #check for previous instance of that category
     prev_event_type_assign(acc, !!sym(param), bmi_df, BMI_cat, category, days, min_events)
-  }, .init = df)
+    
+    },
+    
+    #re-initialise target dataframe for each loop
+    .init = df)
+  
+  
 }
-pos_urines <- read_csv("pos_urines_pre_features.csv")
+
 ###Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
+pos_urines <- read_csv("pos_urines_pre_features.csv") #urines cleaned in PDAST_cleaning/preprocessing
 omr <- read_csv("omr.csv") #Measurements e.g., height, weight
 hadm <- read_csv("admissions.csv") #Admission data
 labevents <- read_csv("labevents.csv") #Laboratory tests (non-micro)
@@ -196,11 +339,11 @@ pats <- read_csv("patients.csv") #Patient demographics
 services <- read_csv("services.csv") #Service providers
 d_icd_diagnoses <- read_csv("d_icd_diagnoses.csv") #icd codes
 diagnoses_raw <- read_csv("diagnoses_icd.csv") #icd epi
-diagnoses <- read_csv("diagnoses_clean.csv")
-procedures <- read_csv("procedures_clean.csv")
-poe <- read_csv("poe_clean.csv")
-micro <- read_csv("micro_clean2.csv")
-drugs <- read_csv("drugs_clean.csv")
+diagnoses <- read_csv("diagnoses_clean.csv") #diagnoses cleaned in PDAST_cleaning/preprocessing
+procedures <- read_csv("procedures_clean.csv") #procedures cleaned in PDAST_cleaning/preprocessing
+poe <- read_csv("poe_clean.csv") #care events cleaned in PDAST_cleaning/preprocessing
+micro <- read_csv("micro_clean2.csv") #micro cleaned in PDAST_cleaning/preprocessing
+drugs <- read_csv("drugs_clean.csv") #prescriptions cleaned in PDAST_cleaning/preprocessing
 
 ##Finding previous AST results
 
@@ -238,12 +381,20 @@ organisms <- urine_df %>% count(org_fullname) %>% arrange(desc(n)) %>%
    slice(1:10) %>% pull(org_fullname)
 params <- paste0("pG", organisms,"Urine")
 apply_prev_event <- function(df, param,organism) {
+  
   df %>%
+    
+    #individual check for growth of each organism in the last year
     prev_event_type_assign(!!sym(param), urine_df, org_fullname,organism, 365, 1)
-}
+  
+  }
 pos_urines <- reduce(seq_along(organisms), function(df, i) {
+  
+  #check for previous organism growth across the params list (see above)
   apply_prev_event(df, params[i], organisms[i])
-}, .init = pos_urines) %>%
+  
+  },
+  .init = pos_urines) %>%
   ungroup()
 
 ##Finding previous antimicrobial treatment
@@ -266,24 +417,44 @@ suffixes <- c("AMPrx", "AMXrx", "AMCrx", "SAMrx", "TZPrx", "CZOrx", "CZOrx", "CZ
 
 ###At least one inpatient antimicrobial prescription in the last year
 apply_prev_rx <- function(df, suffix, antibiotic) {
+  
+  #past p for previous onto chosen antibiotic from list
   param_name <- paste0("p", suffix)
+  
   df %>%
+    
+    #check for treatment in the last year
     prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 1)
-}
+  
+  }
 pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
+  
+  #check for previous antibiotic prescriptions across full antibiotic list
   apply_prev_rx(df, suffixes[i], antibiotics[i])
-}, .init = pos_urines) %>%
+  
+  },
+  .init = pos_urines) %>%
   ungroup()
 
 ###At least one inpatient antimicrobial prescription in the last week
 apply_prev_rx <- function(df, suffix, antibiotic) {
+  
+  #add d7 prefix to antibiotic of interest in the list
   param_name <- paste0("d7", suffix)
+  
   df %>%
+    
+    #check for that antibiotic prescription in the last 7 days
     prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 7, 1)
-}
+  
+  }
 pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
+
+  #check across full antibiotic list for last-7-day prescriptions
   apply_prev_rx(df, suffixes[i], antibiotics[i])
-}, .init = pos_urines) %>%
+  
+  },
+  .init = pos_urines) %>%
   ungroup()
 
 ##Find inflammatory marker results
@@ -332,6 +503,7 @@ pos_urines <- pos_urines %>%
 ###Hospital admission from outpatient location
 outpatient_check <- function(df) {
   
+  #if no admission location, assign to outpatient
   df %>% mutate(admission_location=case_when(is.na(admission_location) ~ "OUTPATIENT",
                                              TRUE~admission_location))
   
@@ -380,14 +552,20 @@ pos_urines <- pos_urines %>% left_join(serv_key,by="hadm_id") %>% mutate(
 ###At least one measured obese, underweight, or overweight BMI category in the last 3 years
 categorise_bmi <- function(df) {
   df %>%
+    
+    #filter care events df to bmi checks
     filter(grepl("BMI", result_name)) %>%
     mutate(
+      
+      #assign bmi categories based on cutoffs
       BMI_cat = case_when(
         as.numeric(result_value) >= 30 ~ "Obese",
         as.numeric(result_value) >= 25 & as.numeric(result_value) < 30 ~ "Overweight",
         as.numeric(result_value) >= 18.5 & as.numeric(result_value) < 25 ~ "Normal weight",
         as.numeric(result_value) < 18.5 ~ "Underweight"
       ),
+      
+      #make admittime variable to facilitate mimer previous event search
       admittime = as.POSIXct(chartdate, format = '%Y-%m-%d %H:%M:%S')
     )
 }
@@ -410,27 +588,26 @@ pos_urines <- pos_urines %>% mutate(ordertime=chartdate) %>%
 
 ###Other specific previous care events
 pos_urines <- pos_urines %>% 
-  care_event_assigner(poe,"cath",field_value,pCATH,"ordertime",28) %>%  ###At least one urinary catheter insertion in the last 28 days
-  care_event_assigner(poe,"DNR",field_value,pDNR,"ordertime",365) %>% ###At least one 'do not resuscitate' order in the last year
-  care_event_assigner(poe,"Discharge",field_value,pDISC,"ordertime",28) %>% ###At least one discharge from hospital in the last 28 days
-  care_event_assigner(poe,"ICU",field_value,pICU,"ordertime",28) %>% ###At least one intensive care admission in the last 28 days
-  care_event_assigner(poe,"Psychiatry",field_value,pPsych,"ordertime",365) %>% ###At least one psychiatry review in the last year
-  care_event_assigner(poe,"Nephrostomy",field_value,pNeph,"ordertime",365) %>% ###At least one nephrostomy insertion in the last year
-  care_event_assigner(poe,"Surgery",field_value,pSURG,"ordertime",365) %>% ###At least one surgical procedure in the last year
-  care_event_assigner(poe,"Hydration",field_value,pHyd,"ordertime",28) %>% ###At least one hydration order in the last 28 days
-  care_event_assigner(poe,"NGT",field_value,pNGT,"ordertime",28) %>% ###At least one nasogastric tube insertion in the last 28 days
-  care_event_assigner(poe,"Chemo",field_value,pChemo,"ordertime",28) %>%  ###At least one administration of cancer chemotherapy in the last 28 days
-  care_event_assigner(poe,"Nutrition consult",order_subtype,pNUTR,"ordertime",365) %>%  ###At least one nutrition consultation in the last year
-  care_event_assigner(poe,"Physical Therapy",order_subtype,pPhysio,"ordertime",365) %>% ###At least one physiotherapy consultation in the last year
-  care_event_assigner(poe,"Restraints",order_subtype,pRestr,"ordertime",365) %>% ###At least one requirement for restraints in the last year
-  care_event_assigner(poe,"Occupational Therapy",order_subtype,pOT,"ordertime",365) %>% ###At least one occupational therapy consultation in the last year
-  care_event_assigner(poe,"Central TPN",order_subtype,pTPN,"ordertime",365) ###At least one administration of total parenteral nutrition in the last year
+  care_event_assigner(poe,"cath",field_value,pCATH,"ordertime",28) %>%  #at least one urinary catheter insertion in the last 28 days
+  care_event_assigner(poe,"DNR",field_value,pDNR,"ordertime",365) %>% #at least one 'do not resuscitate' order in the last year
+  care_event_assigner(poe,"Discharge",field_value,pDISC,"ordertime",28) %>% #at least one discharge from hospital in the last 28 days
+  care_event_assigner(poe,"ICU",field_value,pICU,"ordertime",28) %>% #at least one intensive care admission in the last 28 days
+  care_event_assigner(poe,"Psychiatry",field_value,pPsych,"ordertime",365) %>% #at least one psychiatry review in the last year
+  care_event_assigner(poe,"Nephrostomy",field_value,pNeph,"ordertime",365) %>% #at least one nephrostomy insertion in the last year
+  care_event_assigner(poe,"Surgery",field_value,pSURG,"ordertime",365) %>% #at least one surgical procedure in the last year
+  care_event_assigner(poe,"Hydration",field_value,pHyd,"ordertime",28) %>% #at least one hydration order in the last 28 days
+  care_event_assigner(poe,"NGT",field_value,pNGT,"ordertime",28) %>% #at least one nasogastric tube insertion in the last 28 days
+  care_event_assigner(poe,"Chemo",field_value,pChemo,"ordertime",28) %>%  #at least one administration of cancer chemotherapy in the last 28 days
+  care_event_assigner(poe,"Nutrition consult",order_subtype,pNUTR,"ordertime",365) %>%  #at least one nutrition consultation in the last year
+  care_event_assigner(poe,"Physical Therapy",order_subtype,pPhysio,"ordertime",365) %>% #at least one physiotherapy consultation in the last year
+  care_event_assigner(poe,"Restraints",order_subtype,pRestr,"ordertime",365) %>% #at least one requirement for restraints in the last year
+  care_event_assigner(poe,"Occupational Therapy",order_subtype,pOT,"ordertime",365) %>% #at least one occupational therapy consultation in the last year
+  care_event_assigner(poe,"Central TPN",order_subtype,pTPN,"ordertime",365) #at least one administration of total parenteral nutrition in the last year
 
 ##Name of organism grown (for specimen pathway sensitivity analysis)
-
-recipethis <- recipe(~org_fullname,data=pos_urines)
-dummies <- recipethis %>% step_dummy(org_fullname) %>% prep(training = pos_urines)
-dummy_data <- bake(dummies,new_data = NULL)
-pos_urines <- pos_urines %>% cbind(dummy_data) %>% tibble()
+org_recipe <- recipe(~org_fullname,data=pos_urines)
+org_dummies <- org_recipe %>% step_dummy(org_fullname) %>% prep(training = pos_urines)
+org_dummydata <- bake(org_dummies,new_data = NULL)
+pos_urines <- pos_urines %>% cbind(org_dummydata) %>% tibble()
 write_csv(pos_urines,"pos_urines_w_features")
 
