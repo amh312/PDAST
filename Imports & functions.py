@@ -47,7 +47,9 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
                       scorer='f1_weighted',target_ab='antibiotic',targ_result='',analysis_type=''):
 
     #train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
+    x_train, x_test, y_train, y_test = train_test_split(
+
+        #include full list of feats for ht tuning
         ht_features,
         target,
         test_size=test,
@@ -55,10 +57,14 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
     )
 
     #define log reg model
-    log_reg = LogisticRegression(
+    ast_lrmodel = LogisticRegression(
+
+        #max 2,000 iterations for convergance
         max_iter=2000,
         multi_class=model_type,
         class_weight=cw,
+
+        #lasso regularisation to remove features close to zero
         penalty='l1',
         solver='liblinear'
     )
@@ -70,47 +76,47 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
     kf = KFold(n_splits=folds, random_state=random, shuffle=True)
 
     #define cv parameters
-    logreg_cv = GridSearchCV(log_reg, param_grid, cv=kf,scoring=scorer)
+    ast_lr_crossval = GridSearchCV(ast_lrmodel, param_grid, cv=kf,scoring=scorer)
 
     #run cv
-    logreg_cv.fit(X_train, y_train)
+    ast_lr_crossval.fit(x_train, y_train)
 
     #print best c parameter value and score
-    print("Tuned logreg parameters: {}".format(logreg_cv.best_params_))
-    print("Tuned logreg score: {}".format(logreg_cv.best_score_))
+    print("best parameters: {}".format(ast_lr_crossval.best_params_))
+    print("best performance: {}".format(ast_lr_crossval.best_score_))
 
     #report mean and sd of scores
-    n_scores = cross_val_score(log_reg, X_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
-    print('Mean Accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
+    n_scores = cross_val_score(ast_lrmodel, x_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
+    print('mean accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
 
     #retrieve best resistance model
-    best_lr = logreg_cv.best_estimator_
+    best_astmodel = ast_lr_crossval.best_estimator_
 
-    #coefs to glob envir
-    global coefs
+    #ast_coefvals to glob envir
+    global ast_coefvals
 
-    #make df from coefs of best model and transpose
-    coefs = pd.DataFrame(best_lr.coef_)
-    coefs = coefs.transpose()
+    #make df from coefficient values of best model and transpose
+    ast_coefvals = pd.DataFrame(best_astmodel.coef_)
+    ast_coefvals = ast_coefvals.transpose()
 
     #set ast result types as colnames if >1 result type
-    if len(sorted(coefs)) > 1:
-        coefs.columns = best_lr.classes_
-    print("Total number of features:", len(ht_features.columns))
+    if len(sorted(ast_coefvals)) > 1:
+        ast_coefvals.columns = best_astmodel.classes_
+    print("n features:", len(ht_features.columns))
 
     #set var list to glob envir
     global vari_list
     vari_list = {}
 
     #check >1 ast result type for that antibiotic
-    if len(sorted(coefs)) > 1:
+    if len(sorted(ast_coefvals)) > 1:
 
         #populate predictor var list with nonzero predictors for each ast result type
-        for label in best_lr.classes_:
-            vari_list[label] = best_lr.feature_names_in_[coefs[coefs[label] != 0].index]
-            print("Nonzero features for " + label + ": ", vari_list[label])
-            print("Number of selected features for " + label + ": ",
-                  np.count_nonzero(best_lr.feature_names_in_[coefs[coefs[label] != 0].index]))
+        for label in best_astmodel.classes_:
+            vari_list[label] = best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]
+            print("non-zero features for " + label + ": ", vari_list[label])
+            print("n sdelected features for " + label + ": ",
+                  np.count_nonzero(best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]))
 
             #set colours for plots depending on ast result
             if label == "R":
@@ -123,19 +129,19 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
                 line_col = "blue"
 
             #bar plot for positive coefficients for ast result
-            if len(coefs.sort_values(by=0,ascending=False)[0:4] !=0):
+            if len(ast_coefvals.sort_values(by=0,ascending=False)[0:4] !=0):
 
                 #set up for multiple bar plot for pred coeefs
                 fig, ax = plt.subplots()
 
                 #sort coefficients by value
-                bar_coef = coefs.sort_values(by=0,ascending=False)[0:4]
+                ast_coefbar = ast_coefvals.sort_values(by=0,ascending=False)[0:4]
 
-                #for each ast result make a bar plot of predictor coefs
-                bar_coef[label].plot.bar(color=line_col)
+                #for each ast result make a bar plot of predictor ast_coefvals
+                ast_coefbar[label].plot.bar(color=line_col)
 
                 #set feature names on axis and chart title
-                ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=False)[0:4].index])
+                ax.set_xticklabels(best_astmodel.feature_names_in_[ast_coefvals.sort_values(by=0,ascending=False)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest positive coefficients for "+ label + " prediction")
 
                 #set tight layout to ensure fit for pdf
@@ -146,19 +152,19 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
                 plt.show()
 
             #same as above but for negative coefficients
-            if len(coefs.sort_values(by=0,ascending=True)[0:4] != 0):
+            if len(ast_coefvals.sort_values(by=0,ascending=True)[0:4] != 0):
 
                 #set for multiple plots
                 fig, ax = plt.subplots()
 
-                #set coefs all to positive and sort
-                bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4])
+                #set ast_coefvals all to positive and sort
+                ast_coefbar = abs(ast_coefvals.sort_values(by=0,ascending=True)[0:4])
 
                 #set colours according to ast result predicted
-                bar_coef[label].plot.bar(color=line_col)
+                ast_coefbar[label].plot.bar(color=line_col)
 
                 #set axis labels and chart title
-                ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=True)[0:4].index])
+                ax.set_xticklabels(best_astmodel.feature_names_in_[ast_coefvals.sort_values(by=0,ascending=True)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest negative coefficients for " + label + " prediction")
 
                 #set tight layout and to pdf again
@@ -170,23 +176,23 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
     else:
 
         #set vari list in same way as above
-        vari_list = best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]
-        print("Nonzero features: ", vari_list)
-        print("Number of selected features: ",
-              np.count_nonzero(best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]))
+        vari_list = best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]
+        print("non-zero features: ", vari_list)
+        print("n selected features: ",
+              np.count_nonzero(best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]))
 
         #set space to have both plots
         fig, ax = plt.subplots()
 
-        #set coefs for bar again, but this time drop missing vals
-        bar_coef = coefs.sort_values(by=0,ascending=False)[0:4].dropna()
+        #set ast_coefvals for bar again, but this time drop missing vals
+        ast_coefbar = ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()
 
         #set plot as green for pos vals
-        bar_coef.plot.bar(color="green")
+        ast_coefbar.plot.bar(color="green")
 
         #set number of axis ticks manually and add labels, plus chart title
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
 
         #legend
@@ -201,14 +207,14 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
         fig, ax = plt.subplots()
 
         #set absolute vals of neg coefficients for bar purpose
-        bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4].dropna())
+        ast_coefbar = abs(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna())
 
         #set neg features to red
-        bar_coef.plot.bar(color="red")
+        ast_coefbar.plot.bar(color="red")
 
         #manuallys set no of ticks and labels from predictor var names, plus title
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
 
         #legend
@@ -223,7 +229,7 @@ def lr_hyp_tune_feats(target,ht_features,test=0.2,random=1,folds=6,model_type="a
     global c_value
 
     #dictionary with best vals for params
-    c_dict = logreg_cv.best_params_
+    c_dict = ast_lr_crossval.best_params_
 
     #get c value from dictionary
     c_value = list(c_dict.values())[0]
@@ -233,7 +239,9 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
                       scorer='f1_weighted',target_ab='antibiotic',targ_result=''):
 
     #train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
+    x_train, x_test, y_train, y_test = train_test_split(
+
+        #full list of feats for ht tuning
         ht_features,
         target,
         test_size=test,
@@ -241,10 +249,14 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
     )
 
     #set model parameters
-    log_reg = LogisticRegression(
+    ast_lrmodel = LogisticRegression(
+
+        #max 2,000 iterations for convergance
         max_iter=2000,
         multi_class=model_type,
         class_weight=cw,
+
+        #lasso regularisation to remove features close to zero
         penalty='l1',
         solver='liblinear'
     )
@@ -256,51 +268,51 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
     kf = KFold(n_splits=folds, random_state=random, shuffle=True)
 
     #set up grid search crossval
-    logreg_cv = GridSearchCV(log_reg, param_grid, cv=kf,scoring=scorer)
+    ast_lr_crossval = GridSearchCV(ast_lrmodel, param_grid, cv=kf,scoring=scorer)
 
     #run crossvalidation
-    logreg_cv.fit(X_train, y_train)
+    ast_lr_crossval.fit(x_train, y_train)
 
     #report results of cv
-    print("Tuned logreg parameters: {}".format(logreg_cv.best_params_))
-    print("Tuned logreg score: {}".format(logreg_cv.best_score_))
+    print("best model parameters: {}".format(ast_lr_crossval.best_params_))
+    print("best performance: {}".format(ast_lr_crossval.best_score_))
 
     #get mean and sd of scores across crossval
-    n_scores = cross_val_score(log_reg, X_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
-    print('Mean Accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
+    n_scores = cross_val_score(ast_lrmodel, x_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
+    print('mean accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
 
     #get best model
-    best_lr = logreg_cv.best_estimator_
+    best_astmodel = ast_lr_crossval.best_estimator_
 
-    #set coefs to global envir
-    global coefs
+    #set ast_coefvals to global envir
+    global ast_coefvals
 
-    #get coefs from best model as df and transpose
-    coefs = pd.DataFrame(best_lr.coef_)
-    coefs = coefs.transpose()
+    #get ast_coefvals from best model as df and transpose
+    ast_coefvals = pd.DataFrame(best_astmodel.coef_)
+    ast_coefvals = ast_coefvals.transpose()
 
     #if >1 ast result for that ab then set ast results as coef df colnames
-    if len(sorted(coefs)) > 1:
-        coefs.columns = best_lr.classes_
+    if len(sorted(ast_coefvals)) > 1:
+        ast_coefvals.columns = best_astmodel.classes_
 
     #print no. of features
-    print("Total number of features:", len(ht_features.columns))
+    print("n features:", len(ht_features.columns))
 
     #set variable list to global envir as dictionary
     global vari_list
     vari_list = {}
 
     #check >1 ast result again
-    if len(sorted(coefs)) > 1:
+    if len(sorted(ast_coefvals)) > 1:
 
         #iterate over ast results again
-        for label in best_lr.classes_:
+        for label in best_astmodel.classes_:
 
             #get coefficient variable names for each ast result type
-            vari_list[label] = best_lr.feature_names_in_[coefs[coefs[label] != 0].index]
-            print("Nonzero features for " + label + ": ", vari_list[label])
-            print("Number of selected features for " + label + ": ",
-                  np.count_nonzero(best_lr.feature_names_in_[coefs[coefs[label] != 0].index]))
+            vari_list[label] = best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]
+            print("non-zero feats for " + label + ": ", vari_list[label])
+            print("n selected features for " + label + ": ",
+                  np.count_nonzero(best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]))
 
             #set colours according to ast results
             if label == "R":
@@ -316,23 +328,23 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
     else:
 
         #get coef names for non-zero predictor vars
-        vari_list = best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]
-        print("Nonzero features: ", vari_list)
-        print("Number of selected features: ",
-              np.count_nonzero(best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]))
+        vari_list = best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]
+        print("non-zero features: ", vari_list)
+        print("n selected features: ",
+              np.count_nonzero(best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]))
 
         #set for multiple plots
         fig, ax = plt.subplots()
 
         #get top 5 non-zero coefficients
-        bar_coef = coefs.sort_values(by=0,ascending=False)[0:4].dropna()
+        ast_coefbar = ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()
 
         #set green for pos coefficients
-        bar_coef.plot.bar(color="green")
+        ast_coefbar.plot.bar(color="green")
 
         #set x axis tick numbers and feature names for labels, and title
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
 
         #legend
@@ -347,14 +359,14 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
         fig, ax = plt.subplots()
 
         #first 5 negatives
-        bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4].dropna())
+        ast_coefbar = abs(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna())
 
         #set bars to red
-        bar_coef.plot.bar(color="red")
+        ast_coefbar.plot.bar(color="red")
 
         #x axis ticks and labels, title
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
 
         #legens
@@ -369,7 +381,7 @@ def lr_hyp_tune_feats2(target,ht_features,test=0.2,random=1,folds=6,model_type="
     global c_value
 
     #get parameters from best model
-    c_dict = logreg_cv.best_params_
+    c_dict = ast_lr_crossval.best_params_
 
     #get c value from start of best parameter list
     c_value = list(c_dict.values())[0]
@@ -379,18 +391,24 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
                       scorer='f1_weighted',target_ab='antibiotic',targ_result=''):
 
     #train_test split
-    X_train, X_test, y_train, y_test = train_test_split(
+    x_train, x_test, y_train, y_test = train_test_split(
+
+        #full feat list for ht tuning
         ht_features,
         target,
         test_size=test,
         random_state=random
     )
 
-    #set log_reg model params
-    log_reg = LogisticRegression(
+    #set ast_lrmodel model params
+    ast_lrmodel = LogisticRegression(
+
+        #max 2000 iterations for convergence
         max_iter=2000,
         multi_class=model_type,
         class_weight=cw,
+
+        #lasso regularisation to remove features close to zero
         penalty='l1',
         solver='liblinear'
     )
@@ -402,43 +420,43 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
     kf = KFold(n_splits=folds, random_state=random, shuffle=True)
 
     #gid cv params
-    logreg_cv = GridSearchCV(log_reg, param_grid, cv=kf,scoring=scorer)
+    ast_lr_crossval = GridSearchCV(ast_lrmodel, param_grid, cv=kf,scoring=scorer)
 
     #run cv and print results
-    logreg_cv.fit(X_train, y_train)
-    print("Tuned logreg parameters: {}".format(logreg_cv.best_params_))
-    print("Tuned logreg score: {}".format(logreg_cv.best_score_))
+    ast_lr_crossval.fit(x_train, y_train)
+    print("best parameters: {}".format(ast_lr_crossval.best_params_))
+    print("best performance: {}".format(ast_lr_crossval.best_score_))
 
     #get mean and sd of scores across cv
-    n_scores = cross_val_score(log_reg, X_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
-    print('Mean Accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
+    n_scores = cross_val_score(ast_lrmodel, x_train, y_train, scoring=scorer, cv=kf, n_jobs=-1)
+    print('mean accuracy: %.3f (%.3f)' % (stat.mean(n_scores), stat.stdev(n_scores)))
 
     #get best model
-    best_lr = logreg_cv.best_estimator_
+    best_astmodel = ast_lr_crossval.best_estimator_
 
-    #coefs to global as transposed df
-    global coefs
-    coefs = pd.DataFrame(best_lr.coef_)
-    coefs = coefs.transpose()
+    #ast_coefvals to global as transposed df
+    global ast_coefvals
+    ast_coefvals = pd.DataFrame(best_astmodel.coef_)
+    ast_coefvals = ast_coefvals.transpose()
 
     #set classes to colnames if enough ast results for df (i.e., at least 2)
-    if len(sorted(coefs)) > 1:
-        coefs.columns = best_lr.classes_
-    print("Total number of features:", len(ht_features.columns))
+    if len(sorted(ast_coefvals)) > 1:
+        ast_coefvals.columns = best_astmodel.classes_
+    print("total n features:", len(ht_features.columns))
 
     #global var list dictionary
     global vari_list
     vari_list = {}
 
     #check if >1 ast result
-    if len(sorted(coefs)) > 1:
+    if len(sorted(ast_coefvals)) > 1:
 
         #get non-zero feature names for each ast result prediction in vari liast
-        for label in best_lr.classes_:
-            vari_list[label] = best_lr.feature_names_in_[coefs[coefs[label] != 0].index]
-            print("Nonzero features for " + label + ": ", vari_list[label])
-            print("Number of selected features for " + label + ": ",
-                  np.count_nonzero(best_lr.feature_names_in_[coefs[coefs[label] != 0].index]))
+        for label in best_astmodel.classes_:
+            vari_list[label] = best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]
+            print("non-zero feats for " + label + ": ", vari_list[label])
+            print("total n feats for " + label + ": ",
+                  np.count_nonzero(best_astmodel.feature_names_in_[ast_coefvals[ast_coefvals[label] != 0].index]))
 
             #set plot colours according to AST results
             if label == "R":
@@ -451,19 +469,19 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
                 line_col = "blue"
 
             #check there are some non-zero coefficients
-            if len(coefs.sort_values(by=0,ascending=False)[0:4] !=0):
+            if len(ast_coefvals.sort_values(by=0,ascending=False)[0:4] !=0):
 
                 #set space for both bar plots
                 fig, ax = plt.subplots()
 
-                #set top 5 pos coefs as bar values
-                bar_coef = coefs.sort_values(by=0,ascending=False)[0:4]
+                #set top 5 pos ast_coefvals as bar values
+                ast_coefbar = ast_coefvals.sort_values(by=0,ascending=False)[0:4]
 
                 #set colours of bars
-                bar_coef[label].plot.bar(color="red")
+                ast_coefbar[label].plot.bar(color="red")
 
                 #set axis tick labels and title
-                ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=False)[0:4].index])
+                ax.set_xticklabels(best_astmodel.feature_names_in_[ast_coefvals.sort_values(by=0,ascending=False)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest positive coefficients for "+ label + " prediction")
 
                 #tight layout and out to pdf
@@ -471,19 +489,19 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
                 plt.savefig(target_ab + label + "-posfeatures_time.pdf", format="pdf", bbox_inches="tight")
 
 
-            if len(coefs.sort_values(by=0,ascending=True)[0:4] != 0):
+            if len(ast_coefvals.sort_values(by=0,ascending=True)[0:4] != 0):
 
                 #multiple plot space
                 fig, ax = plt.subplots()
 
                 #absolutes of neg coefficients (top 5)
-                bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4])
+                ast_coefbar = abs(ast_coefvals.sort_values(by=0,ascending=True)[0:4])
 
-                #pass coefs to bar plot
-                bar_coef[label].plot.bar(color="red")
+                #pass ast_coefvals to bar plot
+                ast_coefbar[label].plot.bar(color="red")
 
                 #set axis tick labels and title
-                ax.set_xticklabels(best_lr.feature_names_in_[coefs.sort_values(by=0,ascending=True)[0:4].index])
+                ax.set_xticklabels(best_astmodel.feature_names_in_[ast_coefvals.sort_values(by=0,ascending=True)[0:4].index])
                 ax.set_title(target_ab + ":\nStrongest negative coefficients for " + label + " prediction")
 
                 #tight layout to fit titles and out to pdf
@@ -493,24 +511,24 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
     #if only 1 ast result
     else:
 
-        #get nonzero coefs
-        vari_list = best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]
-        print("Nonzero features: ", vari_list)
-        print("Number of selected features: ",
-              np.count_nonzero(best_lr.feature_names_in_[(coefs[coefs != 0].dropna()).index]))
+        #get nonzero ast_coefvals
+        vari_list = best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]
+        print("non-zer features: ", vari_list)
+        print("n selected feats: ",
+              np.count_nonzero(best_astmodel.feature_names_in_[(ast_coefvals[ast_coefvals != 0].dropna()).index]))
 
         #multiple plot area
         fig, ax = plt.subplots()
 
         #get coef values
-        bar_coef = coefs.sort_values(by=0,ascending=False)[0:4].dropna()
+        ast_coefbar = ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()
 
-        #green bar colours for pos coefs
-        bar_coef.plot.bar(color="green")
+        #green bar colours for pos ast_coefvals
+        ast_coefbar.plot.bar(color="green")
 
         #axis ticks and labs
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=False)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=False)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest positive coefficients for susceptibility prediction")
 
         #legend, tight layout and to pdf
@@ -522,14 +540,14 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
         fig, ax = plt.subplots()
 
         #absolutes of negs
-        bar_coef = abs(coefs.sort_values(by=0,ascending=True)[0:4].dropna())
+        ast_coefbar = abs(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna())
 
         #red bars
-        bar_coef.plot.bar(color="red")
+        ast_coefbar.plot.bar(color="red")
 
         #axis ticks and labels
-        plt.xticks(range(0, len(best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
-                   best_lr.feature_names_in_[(coefs.sort_values(by=0,ascending=True)[0:4].dropna()).index])
+        plt.xticks(range(0, len(best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])),
+                   best_astmodel.feature_names_in_[(ast_coefvals.sort_values(by=0,ascending=True)[0:4].dropna()).index])
         plt.title(target_ab + ":\nStrongest negative coefficients for susceptibility prediction")
 
         #set legend
@@ -543,7 +561,7 @@ def lr_hyp_tune_feats_t(target,ht_features,test=0.2,random=1,folds=6,model_type=
     global c_value
 
     #params from best model
-    c_dict = logreg_cv.best_params_
+    c_dict = ast_lr_crossval.best_params_
 
     #pull out c hyperparam
     c_value = list(c_dict.values())[0]
@@ -557,7 +575,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
                    analysis_type=''):
 
     #set things that will be needed outside function
-    global log_reg
+    global ast_lrmodel
     global fairness_model
     global probs
     probs = {}
@@ -565,7 +583,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
     global model_dict
     model_dict = {}
     global roc_auc
-    global X_test
+    global x_test
 
     #for multinomial analysis (i.e., s,r,i,nt)
     if len(target.unique()) > 2:
@@ -574,7 +592,9 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         for label in vari_list:
 
             #train-test split
-            X_train, X_test, y_train, y_test = train_test_split(
+            x_train, x_test, y_train, y_test = train_test_split(
+
+                #only selected non-zero features for each ast result
                 final_features[vari_list[label]],
                 target,
                 test_size=test,
@@ -582,29 +602,35 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             )
 
             #model training parameters
-            log_reg = LogisticRegression(
+            ast_lrmodel = LogisticRegression(
+
+                #max 2000 iterations for convergence
                 max_iter=2000,
                 multi_class=model_type,
+
+                #c value from hyperparameter tuning
                 C=C_val,
                 class_weight=cw,
+
+                #lasso regularisation
                 penalty='l1',
                 solver='liblinear'
             )
 
             #fit model
-            log_reg.fit(X_train, y_train)
+            ast_lrmodel.fit(x_train, y_train)
 
             #set model for later fairness analysis
-            fairness_model = log_reg
+            fairness_model = ast_lrmodel
 
             #put fit model in dictionary for later
-            model_dict[label] = log_reg
+            model_dict[label] = ast_lrmodel
 
             #get ast result classification predictions on test data
-            y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
+            y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
 
             #same but for probability predictions
-            y_pred_probs = log_reg.predict_proba(X_test)
+            y_pred_probs = ast_lrmodel.predict_proba(x_test)
 
             #get how many classes in data
             n_classes = len(np.unique(y_train))
@@ -616,12 +642,12 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             label_binarizer = LabelBinarizer().fit(y_train)
 
             #binarised onehot encoding for test outcomes of interest
-            y_onehot_test = label_binarizer.transform(y_test)
+            binarised_y = label_binarizer.transform(y_test)
 
             #get dimensions to give no. of shapes and classes
-            y_onehot_test.shape
+            binarised_y.shape
 
-            print('AUROC for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
+            print('auroc for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
 
             #get class name of interest
             class_id = np.flatnonzero(label_binarizer.classes_ == label)[0]
@@ -638,7 +664,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
 
             #make display for just result type of interest
             display = RocCurveDisplay.from_predictions(
-                y_onehot_test[:, class_id],
+                binarised_y[:, class_id],
                 y_pred_probs[:, class_id],
                 name=f"{label} vs the rest",
                 color=line_col,
@@ -657,7 +683,9 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             plt.show()
 
         #repeat train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
+        x_train, x_test, y_train, y_test = train_test_split(
+
+            #running only for resistance prediction with non-zero features
             final_features[vari_list["R"]],
             target,
             test_size=test,
@@ -665,41 +693,47 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         )
 
         #reset model params
-        log_reg = LogisticRegression(
+        ast_lrmodel = LogisticRegression(
+
+            #max 2000 iterations
             max_iter=2000,
             multi_class=model_type,
+
+            #c value from ht tuning
             C=C_val,
             class_weight=cw,
+
+            #lasso reg
             penalty='l1',
             solver='liblinear'
         )
 
         #retrain model
-        log_reg.fit(X_train, y_train)
+        ast_lrmodel.fit(x_train, y_train)
 
         #set model to fairness
-        fairness_model = log_reg
+        fairness_model = ast_lrmodel
 
         #save resistance prediction model into dictionary
-        model_dict["R"] = log_reg
+        model_dict["R"] = ast_lrmodel
 
         #get class predictions
-        y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
 
         #get prob predictions
-        y_pred_probs = log_reg.predict_proba(X_test)
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)
 
         #get number of ast result classes
         n_classes = len(np.unique(y_train))
 
         #get result classes themselves
-        classes = log_reg.classes_
+        classes = ast_lrmodel.classes_
 
         #set resistance probability predictions in probs dictionary
         probs["R"] = y_pred_probs
 
         #get y predictions on test df
-        y_testpred = log_reg.predict(X_test)
+        y_testpred = ast_lrmodel.predict(x_test)
 
         #get classification report with full performance metrics
         class_report = classification_report(y_test, y_testpred,output_dict=True)
@@ -708,14 +742,14 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         label_binarizer = LabelBinarizer().fit(y_train)
 
         #onehot encoding of outcome on test dataset
-        y_onehot_test = label_binarizer.transform(y_test)
+        binarised_y = label_binarizer.transform(y_test)
 
         #get no. of classes and cases
-        y_onehot_test.shape
+        binarised_y.shape
 
         #make micro-averaged roc-curve display across multinomial ast results
         display = RocCurveDisplay.from_predictions(
-            y_onehot_test.ravel(),
+            binarised_y.ravel(),
             y_pred_probs.ravel(),
             name="micro-average OvR",
             color="purple",
@@ -737,10 +771,10 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         fpr, tpr, roc_auc = dict(), dict(), dict()
 
         #output get micro-averaged roc curve and auroc
-        fpr["micro"], tpr["micro"], _ = roc_curve(y_onehot_test.ravel(), y_pred_probs.ravel())
+        fpr["micro"], tpr["micro"], _ = roc_curve(binarised_y.ravel(), y_pred_probs.ravel())
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['micro']:.2f}")
+        print(f"micro-averaged ovr auroc:\n{roc_auc['micro']:.2f}")
 
         micro_roc_auc_ovr = roc_auc_score(
             y_test,
@@ -749,13 +783,13 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             average="micro",
         )
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score (2):\n{micro_roc_auc_ovr:.2f}")
+        print(f"micro-averaged ovr auroc (2):\n{micro_roc_auc_ovr:.2f}")
 
         #macro-average
         for i in range(n_classes):
 
             #get auroc for each class
-            fpr[i], tpr[i], _ = roc_curve(y_onehot_test[:, i], y_pred_probs[:, i])
+            fpr[i], tpr[i], _ = roc_curve(binarised_y[:, i], y_pred_probs[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
 
         #vector of 1000 fpr values to plot across
@@ -776,7 +810,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         tpr["macro"] = mean_tpr
         roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
-        print(f"Macro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['macro']:.2f}")
+        print(f"macro-averaged ovr auroc:\n{roc_auc['macro']:.2f}")
 
 
         #plot all roc curves together
@@ -808,7 +842,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         #iterate across classes and respective colours to display rocs curves
         for class_id, color in zip(range(n_classes), colors):
             RocCurveDisplay.from_predictions(
-                y_onehot_test[:, class_id],
+                binarised_y[:, class_id],
                 y_pred_probs[:, class_id],
                 name=f"ROC curve for {classes[class_id]}",
                 color=color,
@@ -831,7 +865,9 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
     else:
 
         #train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
+        x_train, x_test, y_train, y_test = train_test_split(
+
+            #only selected non-zero features
             final_features[vari_list],
             target,
             test_size=test,
@@ -839,28 +875,32 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         )
 
         #training parameters
-        log_reg = LogisticRegression(
+        ast_lrmodel = LogisticRegression(
+
+            #max 2,000 iterations for convergence
             max_iter=2000,
             C=C_val,
             class_weight=cw,
+
+            #lasso regularisation
             penalty='l1',
             solver='liblinear'
         )
 
         #fit model
-        log_reg.fit(X_train, y_train)
+        ast_lrmodel.fit(x_train, y_train)
 
         #assign model to model dict object
-        model_dict = log_reg
+        model_dict = ast_lrmodel
 
         #assign fairness model for later
-        fairness_model = log_reg
+        fairness_model = ast_lrmodel
 
         #get classification predictions
-        y_pred = (log_reg.predict_proba(X_test)[:, 0] >= thr).astype(int)
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 0] >= thr).astype(int)
 
         #get probability predictions
-        y_pred_probs = log_reg.predict_proba(X_test)[:,0]
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)[:,0]
 
         #assign probabilities to probs
         probs = y_pred_probs
@@ -872,19 +912,19 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
         roc_auc = 1-roc_auc_score(y_test, y_pred_probs)
 
         #get outcome predictions on test dataset
-        y_testpred = log_reg.predict(X_test)
+        y_testpred = ast_lrmodel.predict(x_test)
 
         #get classification report for performance metrics
         class_report = classification_report(y_test, y_testpred,output_dict=True)
 
         #set line colours according to ast result types
-        if log_reg.classes_[0] == "R":
+        if ast_lrmodel.classes_[0] == "R":
             line_col = "red"
-        elif log_reg.classes_[0] == "I":
+        elif ast_lrmodel.classes_[0] == "I":
             line_col = "darkorange"
-        elif log_reg.classes_[0] == "S":
+        elif ast_lrmodel.classes_[0] == "S":
             line_col = "green"
-        elif log_reg.classes_[0] == "NT":
+        elif ast_lrmodel.classes_[0] == "NT":
             line_col = "blue"
 
         #set auroc display again but for binary prediction
@@ -894,7 +934,7 @@ def LR_multi_final(target,final_features,test=0.2,random=1,C_val=0.1,
             name=f"Binary prediction",
             color="purple",
             plot_chance_level=True,
-            pos_label=log_reg.classes_[0]
+            pos_label=ast_lrmodel.classes_[0]
         )
 
         #set axes names and title for binary prediction
@@ -914,7 +954,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
                    ab_of_interest="Ampicillin",av="micro"):
 
     #set things that will be needed to global env
-    global log_reg
+    global ast_lrmodel
     global fairness_model
     global probs
     probs = {}
@@ -922,16 +962,16 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
     global model_dict
     model_dict = {}
     global roc_auc
-    global X_test
+    global x_test
 
-    #for multinomial analysis (not actually used in out-of-sample time analysis)
+    #for multinomial analysis (not actually used in out-of-sample time analysis here)
     if len(target.unique()) > 2:
 
         #iterate over ast result types
         for label in vari_list:
 
             #train-tst split
-            X_train, X_test, y_train, y_test = train_test_split(
+            x_train, x_test, y_train, y_test = train_test_split(
                 final_features[vari_list[label]],
                 target,
                 test_size=test,
@@ -939,29 +979,33 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             )
 
             #model parameters
-            log_reg = LogisticRegression(
+            ast_lrmodel = LogisticRegression(
                 max_iter=2000,
                 multi_class=model_type,
+
+                #tuned c value
                 C=C_val,
                 class_weight=cw,
+
+                #lasso reg
                 penalty='l1',
                 solver='liblinear'
             )
 
             #fit model
-            log_reg.fit(X_train, y_train)
+            ast_lrmodel.fit(x_train, y_train)
 
             #assign fairness for later
-            fairness_model = log_reg
+            fairness_model = ast_lrmodel
 
             #model for ast result of interest
-            model_dict[label] = log_reg
+            model_dict[label] = ast_lrmodel
 
             #classification predictions
-            y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
+            y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
 
             #probability predictions
-            y_pred_probs = log_reg.predict_proba(X_test)
+            y_pred_probs = ast_lrmodel.predict_proba(x_test)
 
             #number of ast result classes
             n_classes = len(np.unique(y_train))
@@ -973,13 +1017,13 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             label_binarizer = LabelBinarizer().fit(y_train)
 
             #oneot encoding of binarised labels
-            y_onehot_test = label_binarizer.transform(y_test)
+            binarised_y = label_binarizer.transform(y_test)
 
             #dimensions for nuebr of cases and classes
-            y_onehot_test.shape
+            binarised_y.shape
 
             #return aroc
-            print('AUROC score for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
+            print('auroc for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
 
             #get indices of non-zero classes
             class_id = np.flatnonzero(label_binarizer.classes_ == label)[0]
@@ -996,7 +1040,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
 
             #display roc curve
             display = RocCurveDisplay.from_predictions(
-                y_onehot_test[:, class_id],
+                binarised_y[:, class_id],
                 y_pred_probs[:, class_id],
                 name=f"{label} vs the rest",
                 color=line_col,
@@ -1014,7 +1058,9 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             plt.savefig(ab_of_interest + label + "-roc_time.pdf", format="pdf", bbox_inches="tight")
 
         #train-test split again
-        X_train, X_test, y_train, y_test = train_test_split(
+        x_train, x_test, y_train, y_test = train_test_split(
+
+            #only selected non-zero features and only resistance prediction
             final_features[vari_list["R"]],
             target,
             test_size=test,
@@ -1022,53 +1068,59 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         )
 
         #re-train model
-        log_reg = LogisticRegression(
+        ast_lrmodel = LogisticRegression(
+
+            #max 2,000 iterations
             max_iter=2000,
             multi_class=model_type,
+
+            #c value selected by ht tuning
             C=C_val,
             class_weight=cw,
+
+            #lasso
             penalty='l1',
             solver='liblinear'
         )
 
         #fit model
-        log_reg.fit(X_train, y_train)
+        ast_lrmodel.fit(x_train, y_train)
 
         #fairness for later
-        fairness_model = log_reg
+        fairness_model = ast_lrmodel
 
         #set model to resistance prediction
-        model_dict["R"] = log_reg
+        model_dict["R"] = ast_lrmodel
 
         #class predictions
-        y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
 
         #probability predictions
-        y_pred_probs = log_reg.predict_proba(X_test)
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)
 
         #number of ast result classes
         n_classes = len(np.unique(y_train))
 
         #list classes
-        classes = log_reg.classes_
+        classes = ast_lrmodel.classes_
 
         #set prob predictions to probs df
         probs["R"] = y_pred_probs
 
         #get test predictions on test data
-        y_testpred = log_reg.predict(X_test)
+        y_testpred = ast_lrmodel.predict(x_test)
 
         #classificaiton report for performance metrics
         class_report = classification_report(y_test, y_testpred,output_dict=True)
 
         #generate one vs rest onehot labels with binarise again
         label_binarizer = LabelBinarizer().fit(y_train)
-        y_onehot_test = label_binarizer.transform(y_test)
-        y_onehot_test.shape  # (n_samples, n_classes)
+        binarised_y = label_binarizer.transform(y_test)
+        binarised_y.shape  # (n_samples, n_classes)
 
         #make roc for micro-averaged results using ravel method
         display = RocCurveDisplay.from_predictions(
-            y_onehot_test.ravel(),
+            binarised_y.ravel(),
             y_pred_probs.ravel(),
             name="micro-average OvR",
             color="purple",
@@ -1091,10 +1143,10 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
 
 
         #compute micro-averaged roc and print
-        fpr["micro"], tpr["micro"], _ = roc_curve(y_onehot_test.ravel(), y_pred_probs.ravel())
+        fpr["micro"], tpr["micro"], _ = roc_curve(binarised_y.ravel(), y_pred_probs.ravel())
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['micro']:.2f}")
+        print(f"micro-averaged ovr auroc:\n{roc_auc['micro']:.2f}")
 
         micro_roc_auc_ovr = roc_auc_score(
             y_test,
@@ -1103,11 +1155,11 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             average="micro",
         )
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score (2):\n{micro_roc_auc_ovr:.2f}")
+        print(f"micro-averaged ovr auroc (2):\n{micro_roc_auc_ovr:.2f}")
 
         #repeat for macro-average
         for i in range(n_classes):
-            fpr[i], tpr[i], _ = roc_curve(y_onehot_test[:, i], y_pred_probs[:, i])
+            fpr[i], tpr[i], _ = roc_curve(binarised_y[:, i], y_pred_probs[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
 
         #fpr vals to plot across
@@ -1128,7 +1180,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         tpr["macro"] = mean_tpr
         roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
-        print(f"Macro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['macro']:.2f}")
+        print(f"macro-averaged ovr auroc:\n{roc_auc['macro']:.2f}")
 
 
         #plot all roc curves together
@@ -1160,7 +1212,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         #iterate over classes and colours
         for class_id, color in zip(range(n_classes), colors):
             RocCurveDisplay.from_predictions(
-                y_onehot_test[:, class_id],
+                binarised_y[:, class_id],
                 y_pred_probs[:, class_id],
                 name=f"ROC curve for {classes[class_id]}",
                 color=color,
@@ -1181,7 +1233,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
     else:
 
         #train-test split to get training dataset from time period 1
-        X_train, no_X_test, y_train, no_y_test = train_test_split(
+        x_train, no_x_test, y_train, no_y_test = train_test_split(
             final_features[vari_list],
             target,
             test_size=test,
@@ -1189,7 +1241,9 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         )
 
         #train-test split  to get testing dataset for time period 2
-        X_no_train, X_test, y_no_train, y_test = train_test_split(
+        x_no_train, x_test, y_no_train, y_test = train_test_split(
+
+            #taking features and target from df filtered to other time period
             test_datf[vari_list],
             target2,
             test_size=test,
@@ -1197,26 +1251,32 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         )
 
         #set model parameters
-        log_reg = LogisticRegression(
+        ast_lrmodel = LogisticRegression(
+
+            #2000 max iterations
             max_iter=2000,
+
+            #tuned c value
             C=C_val,
             class_weight=cw,
+
+            #lasso reg
             penalty='l1',
             solver='liblinear'
         )
 
         #fit model
-        log_reg.fit(X_train, y_train)
+        ast_lrmodel.fit(x_train, y_train)
 
         #set to model_dict and set fairness model for later
-        model_dict = log_reg
-        fairness_model = log_reg
+        model_dict = ast_lrmodel
+        fairness_model = ast_lrmodel
 
         #get class predictions
-        y_pred = (log_reg.predict_proba(X_test)[:, 0] >= thr).astype(int)
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 0] >= thr).astype(int)
 
         #get probability predictions and set to probs object
-        y_pred_probs = log_reg.predict_proba(X_test)[:,0]
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)[:,0]
         probs = y_pred_probs
 
         #get n classes
@@ -1227,19 +1287,19 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
         roc_auc = 1-roc_auc_score(y_test, y_pred_probs)
 
         #class predictions for class report
-        y_testpred = log_reg.predict(X_test)
+        y_testpred = ast_lrmodel.predict(x_test)
 
         #classification report for performance metrics
         class_report = classification_report(y_test, y_testpred,output_dict=True)
 
         #set line colours as per ast result type
-        if log_reg.classes_[0] == "R":
+        if ast_lrmodel.classes_[0] == "R":
             line_col = "red"
-        elif log_reg.classes_[0] == "I":
+        elif ast_lrmodel.classes_[0] == "I":
             line_col = "darkorange"
-        elif log_reg.classes_[0] == "S":
+        elif ast_lrmodel.classes_[0] == "S":
             line_col = "green"
-        elif log_reg.classes_[0] == "NT":
+        elif ast_lrmodel.classes_[0] == "NT":
             line_col = "blue"
 
         #roc curve for binary prediction on time period train-test pair of interest
@@ -1249,7 +1309,7 @@ def LR_multi_final_t(target,final_features,test_datf,target2,test=0.2,random=1,C
             name=f"Binary prediction",
             color="purple",
             plot_chance_level=True,
-            pos_label=log_reg.classes_[0]
+            pos_label=ast_lrmodel.classes_[0]
         )
 
         #axes and title
@@ -1311,49 +1371,67 @@ def result_compiler(data,output_filename):
 def mod_fairness(protvarv,chosen_model,target,final_features,test=0.2,random=1,
                  thr=0.5,av="micro",Bool=True):
 
-    global log_reg
+    #set global objects needed for fairness analysis
+    global ast_lrmodel
     global probs
     probs = {}
     global class_report
     global model_dict
     model_dict = {}
 
-    global X_test
+    global x_test
     global y_test
 
+    #for multinomial analysis (not analysed here)
     if len(target.unique()) > 2:
 
+        #iterate over ast results
         for label in vari_list:
 
-            X_train, X_test, y_train, y_test = train_test_split(
+            #train-test split
+            x_train, x_test, y_train, y_test = train_test_split(
                 final_features,
                 target,
                 test_size=test,
                 random_state=random
             )
 
-            X_test = X_test[X_test[protvarv] == Bool]
-            y_test = y_test[X_test[X_test[protvarv] == Bool].index]
-            X_test = X_test[vari_list[label]]
+            #filter to presence or absence of protected characteristic
+            x_test = x_test[x_test[protvarv] == Bool]
+            y_test = y_test[x_test[x_test[protvarv] == Bool].index]
+
+            #only selected non-zero features
+            x_test = x_test[vari_list[label]]
 
 
-            # Train a new model and evaluate performance
+            #get trained model from dictionary
+            ast_lrmodel = chosen_model
 
-            log_reg = chosen_model
-            y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
-            y_pred_probs = log_reg.predict_proba(X_test)
+            #predicted ast classifications
+            y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
+
+            #predicted probabilities
+            y_pred_probs = ast_lrmodel.predict_proba(x_test)
+
+            #number of ast result types
             n_classes = len(np.unique(y_train))
+
+            #put into probs list
             probs[label] = y_pred_probs
 
-            # Generate ROC curve values: fpr, tpr, thresholds
+            #binarise multinomial results for ovr roc
             label_binarizer = LabelBinarizer().fit(y_train)
-            y_onehot_test = label_binarizer.transform(y_test)
-            y_onehot_test.shape  # (n_samples, n_classes)
+            binarised_y = label_binarizer.transform(y_test)
 
-            print('ROC_AUC score for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
+            #get rows and columns for cases and classes
+            binarised_y.shape
 
+            print('auroc for '+label+': ',roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av))
+
+            #first label corresponds to binarised label
             class_id = np.flatnonzero(label_binarizer.classes_ == label)[0]
 
+            #set colours accorsing to ast results
             if label=="R":
                 line_col="red"
             elif label=="I":
@@ -1363,52 +1441,84 @@ def mod_fairness(protvarv,chosen_model,target,final_features,test=0.2,random=1,
             elif label=="NT":
                 line_col="blue"
 
+        #train-test split again
+        x_train, x_test, y_train, y_test = train_test_split(
 
-        X_train, X_test, y_train, y_test = train_test_split(
+            #only selected non-zero features
             final_features,
             target,
             test_size=test,
             random_state=random
         )
 
-        X_test = X_test[X_test[protvarv] == Bool]
-        y_test = y_test[X_test[X_test[protvarv] == Bool].index]
-        X_test = X_test[vari_list['R']]
+        #filter to presence or absence of protected characteristic of choice
+        x_test = x_test[x_test[protvarv] == Bool]
+        y_test = y_test[x_test[x_test[protvarv] == Bool].index]
 
-        # Train a new model and evaluate performance
+        #binomial so only select resistance prediction
+        x_test = x_test[vari_list['R']]
 
-        log_reg = chosen_model
-        y_pred = (log_reg.predict_proba(X_test)[:, 1] >= thr).astype(int)
-        y_pred_probs = log_reg.predict_proba(X_test)
+        #get model from model dictionary
+        ast_lrmodel = chosen_model
+
+        #get predicted ast result classes
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 1] >= thr).astype(int)
+
+        #get probability predictions
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)
+
+        #get number of ast result classes
         n_classes = len(np.unique(y_train))
-        classes = log_reg.classes_
-        probs["R"] = y_pred_probs
-        y_testpred = log_reg.predict(X_test)
-        cm = confusion_matrix(y_test, y_testpred)
-        TN, FP, FN, TP = cm.ravel()
-        N = TP + FP + FN + TN  # Total population
-        ACC = (TP + TN) / N  # Accuracy
-        TPR = TP / (TP + FN)  # True positive rate
-        FPR = FP / (FP + TN)  # False positive rate
-        FNR = FN / (TP + FN)  # False negative rate
-        PPP = (TP + FP) / N  # % predicted as positive
 
+        #get ast class names
+        classes = ast_lrmodel.classes_
+
+        #populate probs list/dict
+        probs["R"] = y_pred_probs
+
+        #predicted classes for getting classification results
+        y_testpred = ast_lrmodel.predict(x_test)
+
+        #confusion matrix
+        cm = confusion_matrix(y_test, y_testpred)
+
+        #get true/false pos and negs from confusion matrix
+        TN, FP, FN, TP = cm.ravel()
+
+        #total n
+        N = TP + FP + FN + TN
+
+        #accuracy
+        ACC = (TP + TN) / N
+
+        #true pos rate
+        TPR = TP / (TP + FN)
+
+        #false pos rate
+        FPR = FP / (FP + TN)
+
+        #false neg rate
+        FNR = FN / (TP + FN)
+
+        #% predicted as positive
+        PPP = (TP + FP) / N
+
+        #make array to put together manual classification report
         class_report = np.array([ACC, TPR, FPR, FNR, PPP])
 
-        # Generate ROC curve values: fpr, tpr, thresholds
+        #binarise results if applicable for multinomial
         label_binarizer = LabelBinarizer().fit(y_train)
-        y_onehot_test = label_binarizer.transform(y_test)
-        y_onehot_test.shape  # (n_samples, n_classes)
+        binarised_y = label_binarizer.transform(y_test)
+        binarised_y.shape
 
         # store the fpr, tpr, and roc_auc for all averaging strategies
         fpr, tpr, roc_auc = dict(), dict(), dict()
 
-
-        # Compute micro-average ROC curve and ROC area
-        fpr["micro"], tpr["micro"], _ = roc_curve(y_onehot_test.ravel(), y_pred_probs.ravel())
+        #compute micro-averaged roc and auroc
+        fpr["micro"], tpr["micro"], _ = roc_curve(binarised_y.ravel(), y_pred_probs.ravel())
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['micro']:.2f}")
+        print(f"micro-averaged ovr auroc:\n{roc_auc['micro']:.2f}")
 
         micro_roc_auc_ovr = roc_auc_score(
             y_test,
@@ -1417,77 +1527,113 @@ def mod_fairness(protvarv,chosen_model,target,final_features,test=0.2,random=1,
             average="micro",
         )
 
-        print(f"Micro-averaged One-vs-Rest ROC AUC score (2):\n{micro_roc_auc_ovr:.2f}")
+        print(f"micro-averaged ovr auroc (2):\n{micro_roc_auc_ovr:.2f}")
 
-        #macro-average
-
+        #get tprs and fprs over classes
         for i in range(n_classes):
-            fpr[i], tpr[i], _ = roc_curve(y_onehot_test[:, i], y_pred_probs[:, i])
+            fpr[i], tpr[i], _ = roc_curve(binarised_y[:, i], y_pred_probs[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
 
+        #fprs to plot across
         fpr_grid = np.linspace(0.0, 1.0, 1000)
 
-        # Interpolate all ROC curves at these points
+        #populate array with zeroes
         mean_tpr = np.zeros_like(fpr_grid)
 
+        #get co-ordinates for roc using interpolation
         for i in range(n_classes):
-            mean_tpr += np.interp(fpr_grid, fpr[i], tpr[i])  # linear interpolation
+            mean_tpr += np.interp(fpr_grid, fpr[i], tpr[i])
 
-        # Average it and compute AUC
+        ##mean over n-classes to get macro-average
         mean_tpr /= n_classes
 
+        #store performance metrics
         fpr["macro"] = fpr_grid
         tpr["macro"] = mean_tpr
         roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
-        print(f"Macro-averaged One-vs-Rest ROC AUC score:\n{roc_auc['macro']:.2f}")
+        print(f"macro-averaged auroc:\n{roc_auc['macro']:.2f}")
 
+    #for binonial prediction (used in main analysis)
     else:
 
-
-        X_train, X_test, y_train, y_test = train_test_split(
+        #train-test split
+        x_train, x_test, y_train, y_test = train_test_split(
             final_features,
             target,
             test_size=test,
             random_state=random
         )
 
-        X_test = X_test[X_test[protvarv] == Bool]
-        y_test = y_test[X_test[X_test[protvarv] == Bool].index]
-        X_test = X_test[vari_list]
+        #filter for presence or absence of protected chars
+        x_test = x_test[x_test[protvarv] == Bool]
+        y_test = y_test[x_test[x_test[protvarv] == Bool].index]
 
-        # Train a new model and evaluate performance
+        #only selected non-zero features
+        x_test = x_test[vari_list]
 
-        log_reg = chosen_model
+        #select trained model from dictionary
+        ast_lrmodel = chosen_model
 
-        y_pred = (log_reg.predict_proba(X_test)[:, 0] >= thr).astype(int)
-        y_pred_probs = log_reg.predict_proba(X_test)[:,0]
+        #get ast class predictions
+        y_pred = (ast_lrmodel.predict_proba(x_test)[:, 0] >= thr).astype(int)
+
+        #get ast probability predictions
+        y_pred_probs = ast_lrmodel.predict_proba(x_test)[:,0]
+
+        #put prob predictions in probs dict
         probs = y_pred_probs
-        n_classes = len(np.unique(y_train))
-        y_testpred = log_reg.predict(X_test)
-        cm = confusion_matrix(y_test, y_testpred)
-        TN, FP, FN, TP = cm.ravel()
-        N = TP + FP + FN + TN  # Total population
-        ACC = (TP + TN) / N  # Accuracy
-        TPR = TP / (TP + FN)  # True positive rate
-        FPR = FP / (FP + TN)  # False positive rate
-        FNR = FN / (TP + FN)  # False negative rate
-        PPP = (TP + FP) / N  # % predicted as positive
 
+        #get n ast classes
+        n_classes = len(np.unique(y_train))
+
+        #pred probs for classification report
+        y_testpred = ast_lrmodel.predict(x_test)
+
+        #get confusion matrix
+        cm = confusion_matrix(y_test, y_testpred)
+
+        #get metrics from confusion matrix
+        TN, FP, FN, TP = cm.ravel()
+
+        #total n
+        N = TP + FP + FN + TN
+
+        #accuracy
+        ACC = (TP + TN) / N
+
+        #tpr
+        TPR = TP / (TP + FN)
+
+        #fpr
+        FPR = FP / (FP + TN)
+
+        #fnr
+        FNR = FN / (TP + FN)
+
+        # %pred positive
+        PPP = (TP + FP) / N
+
+        #compile classification report
         class_report = np.array([ACC, TPR, FPR, FNR, PPP])
 
-        if log_reg.classes_[0] == "R":
+        #set plot colours based on ast result
+        if ast_lrmodel.classes_[0] == "R":
             line_col = "red"
-        elif log_reg.classes_[0] == "I":
+        elif ast_lrmodel.classes_[0] == "I":
             line_col = "darkorange"
-        elif log_reg.classes_[0] == "S":
+        elif ast_lrmodel.classes_[0] == "S":
             line_col = "green"
-        elif log_reg.classes_[0] == "NT":
+        elif ast_lrmodel.classes_[0] == "NT":
             line_col = "blue"
 
 ###Extracting fairness metrics
 def fairness_printer(df, metric_num):
+
+    #make blank results dictionary
     results = {}
+
+    #iterate over protected characteristics to populate results dict
     for prot in prot_vars:
         if metric_num < len(df[prot]):
             results[prot] = round(df[prot][metric_num], 2)
@@ -1499,25 +1645,36 @@ def fairness_printer(df, metric_num):
 ###Compiling fairness metrics
 def compile_fairness_results(fairness_df,output_filename):
 
+    #make blank dict for fairness matrics table
     metrictable = {}
+
+    #iterate over antibiotics to make antimicrobial sublists
     for antimicrobial in drops:
         metrictable[antimicrobial] = {}
+
+        #populate antimicrobial sublists with metrics
         for metricnumber, metricname in enumerate(metrics_fairness):
             metrictable[antimicrobial][metricname] = fairness_printer(fairness_df[antimicrobial], metricnumber)
 
+    #make list for dataframe
     df_list = []
 
+    #iterate over antimicrobial sublists to make dataframe structure
     for antimicrobial in metrictable:
         for metric in metrictable[antimicrobial]:
             row = {
                 'Antimicrobial': antimicrobial,
                 'Metric': metric
             }
+
+            #populate dataframe with fairness metrics from list
             row.update(metrictable[antimicrobial][metric])
             df_list.append(row)
 
+    #convert to pandas dataframe
     result_df = pd.DataFrame(df_list)
 
+    #send fairness metrics df to csv
     result_df.to_csv(output_filename, index=False)
 
     return(result_df)
@@ -1529,6 +1686,7 @@ def mod_stab_pred(target,final_features,test=0.2,random=1,C_val=0.1,
              cw=None,model_type="auto",thr=0.5,
                    abx="Ampicillin",av="micro",to_drop=""):
 
+    #set objects needed in global env and empty dictionaries
     global size_probs
     size_probs = {}
 
@@ -1537,105 +1695,167 @@ def mod_stab_pred(target,final_features,test=0.2,random=1,C_val=0.1,
     global classes
     classes = {}
 
+    #set testing dataset sizes
     test_sizes = [0.84,0.86,0.88,0.9,0.92,0.94,0.96,0.98]
 
+    #iterate over testing dataset sizes
     for test_sizer in test_sizes:
 
         if len(target.unique()) > 2:
 
-            X_train, X_test, y_train, y_test = train_test_split(
+            #train-test split
+            x_train, x_test, y_train, y_test = train_test_split(
+
+                #only use resistance prediction
                 final_features[vari_list['R']],
                 target,
+
+                #use selected test dataframe size
                 test_size=test_sizer,
                 random_state=random
             )
 
+            #set breaker value to add to for while loop
             breaker = 1
 
+            #while loop to stop situations where only one class available in training data
             while len(y_train.unique()) < 2 or len(y_test.unique()) < 2:
                 print("only one class. trying again...")
 
-                X_train, X_test, y_train, y_test = train_test_split(
+                #iterate over train-test splits
+                x_train, x_test, y_train, y_test = train_test_split(
                     final_features[vari_list['R']],
                     target,
                     test_size=test_sizer,
+
+                    #iterate over seeds
                     random_state=random + 1
                 )
+
+                #give up if still not >1 ast class after 10 t-t split attempts
                 breaker = breaker + 1
                 if breaker == 10:
                     print("giving up.")
                     break
 
-            # Train a new model and evaluate performance
+            #set model parameters
+            ast_lrmodel = LogisticRegression(
 
-            log_reg = LogisticRegression(
+                #max 2000 iterations to converge
                 max_iter=2000,
                 multi_class=model_type,
+
+                #c value selected in ht tuning
                 C=C_val,
                 class_weight=cw,
+
+                #lasso regularisation
                 penalty = 'l1',
                 solver = 'liblinear'
             )
-            log_reg.fit(X_train, y_train)
-            classes[str(test_sizer)] = log_reg.classes_
-            y_pred_probs = log_reg.predict_proba(X_test)
+
+            #train model
+            ast_lrmodel.fit(x_train, y_train)
+
+            #get as classes
+            classes[str(test_sizer)] = ast_lrmodel.classes_
+
+            #get ast class predictions
+            y_pred_probs = ast_lrmodel.predict_proba(x_test)
+
+            #get ast prob predictions
             size_probs[str(test_sizer)] = y_pred_probs
+
+            #populate antibiotic name
             size_probs['Antimicrobial'] = abx
+
+            #string with test dataset size
             test_extra = 'actval' + str(test_sizer)
+
+            #actual results for selected test size
             size_probs[test_extra] = np.array(y_test)
+
+            #if managed to return a result, then get auroc for selected test size
             if len(y_test.unique()) == list(y_pred_probs.shape)[1]:
                 size_aucs[test_sizer] = roc_auc_score(y_test, y_pred_probs,multi_class="ovr",average=av)
                 size_aucs['Antimicrobial'] = abx
+
+            #if had to bail out of while loop above, return nas
             else:
                 size_aucs[test_sizer] = float("NaN")
                 size_aucs['Antimicrobial'] = abx
 
+        #binomial (used in this analysis
         else:
 
-            X_train, X_test, y_train, y_test = train_test_split(
+            #train-test split
+            x_train, x_test, y_train, y_test = train_test_split(
                 final_features[vari_list],
                 target,
                 test_size=test_sizer,
                 random_state=random
             )
 
+            #set breaker value to add to
             breaker = 1
 
+            #repeat train-test splits to ensure at least 1 ast class available
             while len(y_train.unique()) < 2 or len(y_test.unique()) < 2:
                 print("only one class. trying again...")
 
-                X_train, X_test, y_train, y_test = train_test_split(
+                #repeat train-test splits until >1 ast class available
+                x_train, x_test, y_train, y_test = train_test_split(
                     final_features[vari_list],
                     target,
                     test_size=test_sizer,
+
+                    #iterate over seeds for split
                     random_state=random+1
                 )
+
+                #give up if not >1 class after 10 random splits
                 breaker = breaker+1
                 if breaker ==10:
                     print("giving up.")
                     break
 
 
-            # Train a new model and evaluate performance
-
-            log_reg = LogisticRegression(
+            #model parameters
+            ast_lrmodel = LogisticRegression(
                 max_iter=2000,
                 C=C_val,
                 class_weight=cw,
                 penalty='l1',
                 solver='liblinear'
             )
-            log_reg.fit(X_train, y_train)
-            y_pred_probs = log_reg.predict_proba(X_test)
-            classes[str(test_sizer)] = log_reg.classes_
+
+            #train model
+            ast_lrmodel.fit(x_train, y_train)
+
+            #get ast class predictions
+            y_pred_probs = ast_lrmodel.predict_proba(x_test)
+
+            #get ast classes
+            classes[str(test_sizer)] = ast_lrmodel.classes_
+
+            #get probability predictions
             size_probs[str(test_sizer)] = y_pred_probs
+
+            #populate antibiotic name
             size_probs['Antimicrobial'] = abx
+
+            #populate test dataset size
             test_extra = 'actval' + str(test_sizer)
+
+            #put actual results into list
             size_probs[test_extra] = np.array(y_test)
 
+            #if managed to make predictions, then populate aurocs
             if len(y_test.unique()) == list(y_pred_probs.shape)[1]:
                 size_aucs[test_sizer] = roc_auc_score(y_test, y_pred_probs[:,0])
                 size_aucs['Antimicrobial'] = abx
+
+            #if gave up in while loop above, populate nas
             else:
                 size_aucs[test_sizer] = float("NaN")
                 size_aucs['Antimicrobial'] = abx
@@ -1645,22 +1865,37 @@ def mod_stab_pred(target,final_features,test=0.2,random=1,C_val=0.1,
 ###Probability predictions
 def prob_predict(abx,abx_name,to_drop,test_filepath,var_filepath,fit_filepath,
                  full_varlist,result_optimised_for,ref):
+
+    #set global objects required to environment
     global test_df
     global vari_list
     global model_dict
-    global X_test
+    global x_test
 
+    #read in test urines dataframe
     test_df = pd.read_csv(test_filepath)
+
+    #drop columns not needed e.g., specimen in
     test_ids = test_df[to_drop]
+
+    #feture classes to boolean dummy variables
     test_df = pd.get_dummies(test_df.drop(to_drop, axis=1))
+
+    #manually populate feature names
     test_df = test_df.reindex(columns=full_varlist)
+
+    #fill nas with false
     test_df = test_df.fillna(False)
 
+    #get variable list from pickle file
     with open(var_filepath, 'rb') as f:
         vari_list = pickle.load(f)
+
+    #get model from pickle file
     with open(fit_filepath, 'rb') as f:
         model_dict = pickle.load(f)
 
+    #set probs objects to global env
     global probs
     probs = {}
 
@@ -1668,36 +1903,53 @@ def prob_predict(abx,abx_name,to_drop,test_filepath,var_filepath,fit_filepath,
 
     global probs_df_final
 
+    #for multinomial prediction
     if len(ref[abx_name].unique()) > 2:
 
+        #get test features and prob predictions for each ast result
         for label in vari_list:
-            X_test = test_df[vari_list[label]]
-            y_pred_probs = model_dict[label].predict_proba(X_test)
+            x_test = test_df[vari_list[label]]
+            y_pred_probs = model_dict[label].predict_proba(x_test)
             probs[label] = y_pred_probs
 
+        #set empty probs dataframe
         probs_df = pd.DataFrame()
+
+        #extract prob predictions from dict into df and bind to probs df
         for label in probs:
             df2 = pd.DataFrame.from_dict(probs[label])
             df2['Variable_tuning'] = label
             probs_df = pd.concat([probs_df, df2])
 
+        #get names from probs dict
         names = sorted(probs)
+
+        #add variable tuning label to list
         names.append("Variable_tuning")
+
+        #copy names to probs df columns and export to csv
         probs_df.columns = names
         probs_df.to_csv("probs_df.csv")
 
+        #back-up probs_df_final dataframe
         probs_df_final = pd.DataFrame()
 
+        #filter to ast result that was ht tuned for
         df_filter = result_optimised_for
+
+        #filter probs df to ast result that was optimised for
         probs_df_final = probs_df.query('Variable_tuning==@df_filter')
 
+        #add specimen/pt ids back on to probabilities
         probs_df_final = pd.concat([test_ids, probs_df_final], axis=1)
+
+        #set antimicrobial name for this model
         probs_df_final['Antimicrobial'] = abx
 
     else:
 
-        X_test = test_df[vari_list]
-        y_pred_probs = model_dict.predict_proba(X_test)
+        x_test = test_df[vari_list]
+        y_pred_probs = model_dict.predict_proba(x_test)
         probs = y_pred_probs
 
         probs_df = pd.DataFrame.from_dict(probs)
