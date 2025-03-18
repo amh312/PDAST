@@ -342,7 +342,7 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
         log.val <- lchoose(N_star, x_star) + lbeta(posterior_alpha+x_star,posterior_beta+N_star-x_star) - lbeta(posterior_alpha,posterior_beta)
         
         #convert log vals back to actual
-        return(exp(log.val))
+        exp(log.val)
       })
       
       #run vectorised function to get beta-binom posterior predictive
