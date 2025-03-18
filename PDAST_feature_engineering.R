@@ -242,7 +242,7 @@ labevent_search <- function(df,search_term,feature_name) {
   #filter lab tests by term of interest
   filter_term <- labitems %>%
     filter(grepl(search_term,label,ignore.case=T)) %>% 
-    count(itemid) %>% arrange(n) %>% slice(1) %>% select(itemid) %>% unlist()
+    count(itemid) %>% arrange(n) %>% dplyr::slice(1) %>% select(itemid) %>% unlist()
   
   #search according to precise term found
   filtered_df <- labevents %>% filter(itemid==filter_term) %>% 
@@ -442,7 +442,7 @@ pos_urines <- prev_AST_applier(pos_urines,micro2,"nt","NT")
 urine_df <- micro %>% filter(test_name=="URINE CULTURE" & !is.na(org_fullname)) %>% 
   mutate(admittime=charttime)
 organisms <- urine_df %>% count(org_fullname) %>% arrange(desc(n)) %>% 
-   slice(1:10) %>% pull(org_fullname)
+   dplyr::slice(1:10) %>% pull(org_fullname)
 params <- paste0("pG", organisms,"Urine")
 pos_urines <- reduce(seq_along(organisms), function(df, i) {
   
