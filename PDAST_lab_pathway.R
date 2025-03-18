@@ -5,36 +5,47 @@
 ###Checking differences in AUC-ROC between stages of the specimen pathway
 largest_diff <- function(df1,df2) {
   
-  df1 %>% slice(
+  #largest differece between stages for first analysis
+  df1 %>% dplyr::slice(
     which.max(abs(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12]))) %>% 
     print()
   
-  df2 %>% slice(
+  #largest difference between stages for second analysis
+  df2 %>% dplyr::slice(
     which.max(abs(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12]))) %>% 
     print()
   
 }
 smallest_diff <- function(df1,df2) {
   
-  df1 %>% slice(
+  #smallest difference between stages for analysis 1
+  df1 %>% dplyr::slice(
     which.min(abs(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12]))) %>% 
     print()
   
-  df2 %>% slice(
+  #smallest difference between stages for analysis 2
+  df2 %>% dplyr::slice(
     which.min(abs(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12]))) %>% 
     print()
   
 }
 largest_fall <- function(df1,df2) {
   
-  df1 %>% slice(
+  #largest drop off between stages (analysis 1)
+  df1 %>% dplyr::slice(
     which.min(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12])) %>% 
     print()
   
-  df2 %>% slice(
+  #largest drop-off between stages (analysis 2)
+  df2 %>% dplyr::slice(
     which.min(df1$AUC_ROC[1:12] - df2$AUC_ROC[1:12])) %>% 
     print()
   
+}
+
+###Filtering function to abx of interest for ast for plot
+ablab <- function(antib) {
+  aucroc_df %>% filter(Antimicrobial==ab_name(antib)&Information=="Other AST")
 }
 
 ##Data load-in and cleaning
@@ -69,12 +80,13 @@ aucroc_df <- aucroc_df %>%
 write_csv(aucroc_df,"sourcedata_labpath.csv")
 
 ###Specimen pathway line chart
-ablab <- function(antib) {
-  aucroc_df %>% filter(Antimicrobial==ab_name(antib)&Information=="Other AST")
-}
 path_plot <- ggplot(aucroc_df,aes(x=Information,y=AUC_ROC,group=Antimicrobial,col=Antimicrobial)) +
   geom_line() +
+  
+  #zoom on x axis
   coord_cartesian(xlim = c(1.5, length(unique(aucroc_df$Information)) + 0.01))+
+  
+  #add antibiotic names to end of lines
   geom_text(data = ablab("CRO"),
             aes(label=ab_name("CRO")),nudge_x = 0.099,size = 2,vjust = 0) +
   geom_text(data = ablab("CAZ"),
@@ -99,15 +111,21 @@ path_plot <- ggplot(aucroc_df,aes(x=Information,y=AUC_ROC,group=Antimicrobial,co
             aes(label=ab_name("TZP")),nudge_x = 0.18,size = 2,vjust = 1) +
   geom_text(data = ablab("SAM"),
             aes(label=ab_name("SAM")),nudge_x = 0.16,size = 2,vjust = 0.5) +
+  
+  #theme, margins, and gridlines
+  theme_minimal() +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
     legend.position = "None",
     panel.grid.minor.y = element_blank(),
     panel.grid.major.y = element_blank()
   ) +
+  
+  #title and x axis label
   ggtitle("Susceptibility prediction performance throughout the laboratory specimen pathway")+
   xlab("Stage in laboratory specimen pathway")
 
+#ssave to pdf
 ggsave("path_plot.pdf", plot = path_plot, device = "pdf", width = 8, height = 4,
-       path="#FILEPATH#")
+       path="/Users/alexhoward/Documents/Projects/UDAST_code")
 
