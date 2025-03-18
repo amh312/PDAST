@@ -26,7 +26,7 @@ aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
     arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
     
     #trim to chosen ast panel size and rename columns
-    mutate(aware_utility = round(aware_utility,1)) %>% slice(1:panel_size) %>% 
+    mutate(aware_utility = round(aware_utility,1)) %>% dyplr::slice(1:panel_size) %>% 
     rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
   
 }
@@ -111,11 +111,11 @@ number_SorI_pdast <- function(df,which_abs) {
     
     #count number of s or i results in that specimen's pdast panel
     n_ac_s <- sum((df %>%
-                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                     slice(i)) == "S" |
+                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dyplr::slice(i)) == "S" |
                     (df %>%
-                       select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                       slice(i)) == "I")
+                       select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                       dyplr::slice(i)) == "I")
     
     #add to vector
     n_all_s <- n_all_s %>% append(n_ac_s)
@@ -137,8 +137,8 @@ number_R_pdast <- function(df,which_abs) {
     
     #check n r results for watch agents and append
     n_wa_r <- sum((df %>%
-                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                     slice(i)) == "R")
+                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dyplr::slice(i)) == "R")
     
     n_watch_r <- n_watch_r %>% append(n_wa_r)
     
@@ -160,12 +160,12 @@ number_SorI_standard <- function(df,which_abs) {
     #check n access s or i results in panel and append
     n_ac_s <- sum((df %>%
                      select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                     slice(i)) == "S" |
+                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dyplr::slice(i)) == "S" |
                     (df %>%
                        select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                             STANDARD_7,STANDARD_8,STANDARD_11) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                       slice(i)) == "I")
+                                                             STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                       dyplr::slice(i)) == "I")
     
     n_all_s <- n_all_s %>% append(n_ac_s)
     
@@ -187,8 +187,8 @@ number_R_standard <- function(df,which_abs) {
     #check n r watch results and append
     n_wa_r <- sum((df %>%
                      select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%slice(i) %>% unlist(),which_abs))) %>% 
-                     slice(i)) == "R")
+                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dyplr::slice(i)) == "R")
     
     n_watch_r <- n_watch_r %>% append(n_wa_r)
     
@@ -208,12 +208,12 @@ number_abs_pdast <- function(df) {
     
     #check which antibiotics have s or i results and append to vector
     all_s <- df %>%
-      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%slice(i) %>% unlist(),all_abs))) %>% 
-      slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
+      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
+      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
     
     all_i <- df %>%
-      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%slice(i) %>% unlist(),all_abs))) %>% 
-      slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
+      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
+      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
     
     ac_si <- all_s %>% append(all_i)
     
@@ -237,13 +237,13 @@ number_abs_standard <- function(df) {
     #get names of abs with s or i results
     all_s <- df %>%
       select(all_of(intersect(urines_aware %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%slice(i) %>% unlist(),all_abs))) %>% 
-      slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
+                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
+      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
     
     all_i <- df %>%
       select(all_of(intersect(urines_aware %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%slice(i) %>% unlist(),all_abs))) %>% 
-      slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
+                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
+      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
     
     
     ac_si <- all_s %>% append(all_i)
@@ -257,46 +257,50 @@ number_abs_standard <- function(df) {
   
 }
 
-###Comparison of differences between number of results per antimicrobial with each approach
+###Differences between results per panel for antibiotic cleveland plot
 minuser <- function(df,abx) {
   
+  #look at antibiotic of interest and arrange by approach to compare
   df %>% filter(ind==ab_name(abx)) %>% arrange(Approach) %>% select(values)
   
+  #if neither zero and pdast better, display pos difference
   if(nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==2 &
-     abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% slice(1) =="PDAST") {
+     abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="PDAST") {
     
-    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(1) -
-      abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(2)
+    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1) -
+      abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(2)
     
+    #if neither zero and standard better, display neg difference
   } else if (nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==2 &
-             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% slice(1) =="Standard"){
+             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="Standard"){
     
-    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(1) -
-        abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(2))
+    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1) -
+        abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(2))
     
+    #if standard zero and pdast better, display pos difference from zero
   } else if (nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==1 &
-             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% slice(1) =="PDAST") {
+             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="PDAST") {
     
-    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(1)
+    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1)
     
+    #if pdast zero and standard better, display neg difference from zero
   } else {
     
-    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% slice(1))
+    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1))
     
   }
   
 }
 
 ###Dataframe assembler for dot plot
-create_df <- function(df, col_name, aware_result, panel) {
+assemble_astdotplot <- function(df, col_name, aware_result, panel) {
   
-  result <- df %>%
+  astdotdf <- df %>%
     select({{ col_name }}) %>%
     cbind(AWaRe_results = aware_result, Panel = panel) %>%
     as.data.frame()
-  colnames(result) <- c("n", "AWaRe_results", "Panel")
-  return(result)
-  
+  colnames(astdotdf) <- c("n", "AWaRe_results", "Panel")
+  astdotdf
 }
 
 ###Main dot plot of all S results and WHO Access S results
@@ -317,11 +321,23 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
   
   #dotplot across all and access results for pdast and standard approaches
   df_plot <- ggplot(plot_df,aes(x=AWaRe_results,y=n,color=Approach)) +
+    
+    #dot clouds for all points
     geom_jitter(colour="black", alpha=0.01, width=0.1,height=0.15) +
+    
+    #large dots at medians
     stat_summary(geom="point",fun="median",size=4)+
+    
+    #error bars for iqrs
     geom_errorbar(aes(ymin=iqr_min,ymax=iqr_max,width=0,color=Approach),show.legend = F)+
+    
+    #no y label
     ylab("")+
+    
+    #plot title
     ggtitle(glue("Microsimulation study:\nNumber of susceptible results provided per specimen\n{(sens_addendum)}")) +
+    
+    #theme, gridlines/ticks, and plot area
     theme_minimal() +
     theme(axis.ticks.x = element_blank(),
           axis.text.x = element_blank(),
@@ -331,9 +347,17 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
           plot.title = element_text(hjust=0.5),
           panel.grid.minor.y = element_blank(),
           panel.grid.major.x = element_blank())+
+    
+    #dividing line between approaches
     geom_vline(xintercept = 2.5,linetype="dashed",color="grey") +
+    
+    #set correct spacing and breaks for 6-agent ast panel
     scale_y_continuous(limits = c(-0.15,7),breaks=c(0:6)) +
+    
+    #green for pdast, red for standard
     scale_color_manual(values=c("#00BFC4","#F8766D"))+
+    
+    #set approach labels
     geom_text(x=1.5,y=6.75,label=glue("{left_label}"),color="#3C3C3C",size=4) +
     geom_text(x=3.5,y=6.75,label=glue("{right_label}"),color="#3C3C3C",size=4)
   
@@ -420,39 +444,64 @@ P{p2_all}; 95% CI of difference {ci1_all} to {ci2_all}).")
 ###Plot maker for results-per-panel sensitivity analysis for all agents
 rpp_plot <- function(df,standard_column,agents,save_as) {
   
+  #median results per standard panel
   hline_yintercept <- median(standard_column)
-  plot <- ggplot(df, aes(x = cutoffseq)) +
+  
+  #results per panel line/area plot across decision thresholds
+  rppplot <- ggplot(df, aes(x = cutoffseq)) +
+    
+    #line for pdast rpp medians
     geom_line(aes(y = as.numeric(medianval), group = PDAST, color = PDAST)) +
+    
+    #shading for pdast rpp iqrs
     geom_ribbon(aes(y = as.numeric(medianval),
                     ymin = as.numeric(iqrval25),
                     ymax = as.numeric(iqrval75),
                     group = PDAST, fill = PDAST), alpha = 0.3) +
+    
+    #green for pdast
     scale_color_manual(values = "#00BFC4") +
     scale_fill_manual(values = "#00BFC4") +
+    
+    #set limits for 6-agent ast panel
     ylim(c(0, 6)) +
+    
+    #chart/axis titles
     ggtitle(glue("PDAST results-per-panel sensitivity analysis for {agents}\nagents: The effect of varying the susceptibility probability\nthreshold for Access agent testing")) +
     xlab("Minimum probability threshold to test Access agent") +
     ylab(glue("Median number of susceptible\nresults for {agents} agents per specimen")) +
+    
+    #flat red line for standard rpp median with annotation
     geom_hline(yintercept = hline_yintercept, linetype = "dashed", color = "#F8766D") +
     annotate("text", x = Inf, y = hline_yintercept + 0.05, label = "Standard panel", 
              color = "#F8766D", size = 3, hjust = 1.05, vjust = -0.5) +
+    
+    #remove padding so line goes to axis
     scale_x_discrete(expand = c(0, 0)) +
+    
+    #plot theme/margins and legend removal
     theme_minimal() +
     theme(legend.position = "none",
           plot.margin = unit(c(1, 1, 1, 1), "cm"))
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  #save to pdf
+  ggsave(save_as, plot = rppplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  rppplot
   
 }
 
-###Plot maker for panels-without_results sensitivity analysis for all agents
+###Plot maker for panels-without-results sensitivity analysis for all agents
 pwr_plot <- function(df,standard_column,agents,save_as) {
   
+  #number of standard panels with at least 1 result
   hline_yintercept <- median((1-sum(standard_column==0)/length(standard_column))*100)
-  plot <- ggplot(df,aes(x=cutoffseq)) +
+  
+  #proportion line plot across decision thresholds
+  pwrplot <- ggplot(df,aes(x=cutoffseq)) +
+    
+    #
     geom_line(aes(y=100-as.numeric(zeroval),group=PDAST,color=PDAST))+
     ylim(c(0,100)) +
     ggtitle(glue("PDAST at-least-one susceptible result sensitivity\nanalysis for {agents} agents: The effect of varying the\ndecision threshold for Access agent testing"))+
@@ -467,18 +516,20 @@ pwr_plot <- function(df,standard_column,agents,save_as) {
     theme(legend.position="none",
           plot.margin = unit(c(1,1,1,1),"cm"))
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  ggsave(save_as, plot = pwrplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  pwrplot
   
 }
 
 ###Accuracy function for fairness analysis
 accuracy_function <- function(df,probs_df,abx,ab_col) {
   
+  #quosure
   ab_col = enquo(ab_col)
   
+  #label each specimen as tp,fp,tn, or fn with booleans
   pddf <- probs_df %>% filter(Antimicrobial == ab_name(abx)) %>% select(micro_specimen_id,pred_res) %>% 
     right_join(df, by = "micro_specimen_id") %>% mutate(
       TP = case_when(!!ab_col == "S" & pred_res == "S" ~ TRUE, TRUE ~ FALSE),
@@ -487,11 +538,13 @@ accuracy_function <- function(df,probs_df,abx,ab_col) {
       FN = case_when(!!ab_col == "S" & pred_res != "S" ~ TRUE, TRUE ~ FALSE)
     )
   
+  #get sums of labels
   TP <- sum(pddf$TP)
   FP <- sum(pddf$FP)
   TN <- sum(pddf$TN)
   FN <- sum(pddf$FN)
   
+  #use sums to calculate accuracy
   (TP + TN) / (TP + TN + FP + FN)
   
 }
@@ -499,18 +552,23 @@ accuracy_function <- function(df,probs_df,abx,ab_col) {
 ###Accuracy difference for fairness analysis
 accdiff <- function(df1,df2,ab,abx) {
   
+  #convert ab names to dashed format
   probs_df_overall <- probs_df_overall %>% mutate(
     Antimicrobial = str_replace(Antimicrobial,"-","/")
   )
   
+  #quosure
   abx <- enquo(abx)
   
+  #paste accuracy for white patients
   white <- paste0("White: ",accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx)*100) 
   print(white)
   
+  #paste accuracy for non-white patients
   nonwhite <- paste0("Non-white: ",accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx)*100)
   print(nonwhite)
-
+  
+  #accuracy difference between white and non-white patients
   difference <- paste0("Difference: ",(accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx) -
       accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100)
   print(difference)  
@@ -522,45 +580,88 @@ accdiff <- function(df1,df2,ab,abx) {
 ###Populating model coefficient full names
 coef_keymaker <- function(reference_filename) {
   
+  #sub-function for antibiotic-related feature names as statements
   appender <- function(column_list,prefix,suffix,condition,timeframe) {
+    
+    #empty feature statement list for population
     statement_list <- c()
+    
+    #iterate over antibiotic-related columns
     for (i in 1:length(column_list)) {
+      
+      #get antibiotic ast result/treatment name
       col_name <- column_list[i]
+      
+      #remove p prefix and s/r/i/rx etc suffix
       cleaned_col_name <- col_name %>%
         str_remove(regex(prefix, ignore_case = FALSE)) %>%
         str_remove(regex(suffix, ignore_case = FALSE))
+      
+      #glue into final name
       statement1 <- glue("{ab_name(cleaned_col_name)} {condition} in the last {timeframe}")
-      statement_list <- append(statement_list,statement1)
-    }
-    statement_list
-  }
-  appender2 <- function(column_list,prefix,suffix,condition,timeframe) {
-    statement_list <- c()
-    for (i in 1:length(column_list)) {
-      col_name <- column_list[i]
-      cleaned_col_name <- col_name %>%
-        str_remove(regex(prefix, ignore_case = FALSE)) %>%
-        str_remove(regex(suffix, ignore_case = FALSE))
-      statement1 <- glue("{cleaned_col_name} {condition} in the last {timeframe}")
-      statement_list <- append(statement_list,statement1)
-    }
-    statement_list
-  }
-  appender3 <- function(column_list,prefix,suffix,condition, detail) {
-    statement_list <- c()
-    for (i in 1:length(column_list)) {
-      col_name <- column_list[i]
-      cleaned_col_name <- col_name %>%
-        str_remove(regex(prefix, ignore_case = FALSE)) %>%
-        str_remove(regex(suffix, ignore_case = FALSE))
-      statement1 <- glue("{condition}: {cleaned_col_name}")
+      
+      #add to list of statements
       statement_list <- append(statement_list,statement1)
     }
     statement_list
   }
   
+  #sub-function for non-antibiotic-related features names with timeframe
+  appender2 <- function(column_list,prefix,suffix,condition,timeframe) {
+    
+    #empty statement list
+    statement_list <- c()
+    
+    #iterate over columns of interest
+    for (i in 1:length(column_list)) {
+      
+      #get column name
+      col_name <- column_list[i]
+      
+      #remove prefixes and suffixes (e.g., p for previous)
+      cleaned_col_name <- col_name %>%
+        str_remove(regex(prefix, ignore_case = FALSE)) %>%
+        str_remove(regex(suffix, ignore_case = FALSE))
+      
+      #glue into final feature statement for table
+      statement1 <- glue("{cleaned_col_name} {condition} in the last {timeframe}")
+      
+      #append to statement list
+      statement_list <- append(statement_list,statement1)
+    }
+    statement_list
+  }
+  
+  #sub-function for non-antibiotic-related features without timeframe
+  appender3 <- function(column_list,prefix,suffix,condition, detail) {
+    
+    #empty statement list for features
+    statement_list <- c()
+    
+    #iterate over columns of interest
+    for (i in 1:length(column_list)) {
+      
+      #get column name
+      col_name <- column_list[i]
+      
+      #remove prefixes and suffixes
+      cleaned_col_name <- col_name %>%
+        str_remove(regex(prefix, ignore_case = FALSE)) %>%
+        str_remove(regex(suffix, ignore_case = FALSE))
+      
+      #glue into final statement name
+      statement1 <- glue("{condition}: {cleaned_col_name}")
+      
+      #add to statement list for table
+      statement_list <- append(statement_list,statement1)
+    }
+    statement_list
+  }
+  
+  #read in coefficients from final logistic regression models
   df <- read_csv(reference_filename) %>% select(-Y)
   
+  #clean up antibiotic-related feature names
   ablist1 <- appender(df %>% select(pAMPr:pVANr) %>% colnames(),
                       "p","r","resistance", "year")
   ablist2 <- appender(df %>% select(pTCYr:pTOBr) %>% colnames(),
@@ -581,12 +682,16 @@ coef_keymaker <- function(reference_filename) {
                       "p","rx","treatment","year")
   ablist10 <- appender(df %>% select(d7AMPrx:d7DOXrx) %>% colnames(),
                        "d7","rx","treatment","week")
+  
+  #clean up non-antibiotic feature names with timeframes
   diaglist <- appender2(df %>% select(pDIAG_A:pDIAG_U) %>% colnames(),
                         "pDIAG_","N/A","group ICD-10 diagnosis","year")
   proclist <- appender2(df %>% select(pPROC_0:pPROC_O) %>% colnames(),
                         "pPROC_","N/A","group ICD-10 procedure","year")
   bmilist <- appender2(df %>% select(pObese:pOverweight) %>% colnames(),
                        "p","N/A","BMI classification","3 years")
+  
+  #clean up other feature names without timeframes
   agelist <- appender3(df %>% select(standard_age_18:standard_age_90) %>% colnames(),
                        "standard_age_","N/A","Age group")
   racelist <- appender3(df %>% select(`race_AMERICAN INDIAN/ALASKA NATIVE`:`race_WHITE - RUSSIAN`) %>% colnames(),
@@ -602,6 +707,7 @@ coef_keymaker <- function(reference_filename) {
   servlist <- appender3(df %>% select(`curr_service_CMED`:`curr_service_VSURG`) %>% colnames(),
                         "curr_service_","N/A","Current Service") %>% str_to_lower() %>% str_to_title()
   
+  #manually append with other one-off statements as one big vector
   parameter_key <- c(ablist1,"AmpC in the last year",ablist2,ablist3,
                      "AmpC in the last week",ablist4,ablist5,
                      "Non-AmpC in the last year",ablist6,ablist7,ablist8,
@@ -630,8 +736,13 @@ coef_keymaker <- function(reference_filename) {
                      racelist,marilist,inslist,langlist,admlist,servlist,"Intercept"
   )
   
+  #bind cleaned feature names to old feature names to make key
   coefkey <- data.frame(Parameter_name=parameter_key,Parameter=df %>% colnames() %>% append("Intercept")) %>% tibble()
+  
+  #assign coefficient table to global environment
   assign("coefkey",coef_key)
+  
+  #use key to clean coefficient tables for each ab and replace their csvs with the clean ones
   csv_list <- c()
   for (i in seq_along(abxlist)) {
     this_csv <- read_csv(glue("{abxlist[i]}_coef_list.csv"))
@@ -646,29 +757,41 @@ coef_keymaker <- function(reference_filename) {
 ###Cleaning and separating fairness dataframes
 fairdf_cleaner <- function(T_df,F_df) {
   
+  #read-in fairness analyses for presence (T) and abscence (F) of protected chars
   T_df <- read_csv(T_df)
   F_df <- read_csv(F_df)
   
+  #transpose dataframe and use coefkey to clean feature names
   T_df <- T_df %>% t() %>% data.frame() %>% 
     mutate(Parameter = colnames(T_df)) %>% 
     left_join(coefkey,by="Parameter") %>% relocate(Parameter_name,.before=1) %>% 
     select(-Parameter)
+  
+  #add female=true to tdf using male=false in fdf
   female_vector <- c("Female", F_df$MALE)
   Female <- data.frame(t(female_vector), stringsAsFactors = FALSE)
   colnames(Female) <- colnames(T_df)
   T_df <- T_df %>% 
     add_row(Female,.before=3)
   
+  #ab reflist
   abxlist <- c("AMP","SAM","TZP","CZO","CRO","CAZ","FEP","MEM","CIP",
                "GEN","SXT","NIT","VAN")
   
+  #iterate over antibiotic list
   for (abx in seq_along(abxlist)) {
     
+    #bind characteristics to values for antibiotic of interest
     filtered_df <- cbind(Characteristic = T_df$Parameter_name,
                          T_df[, which(T_df[1, ] == abxlist[abx])])
-    colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
-    filtered_df <- filtered_df %>% slice(-c(1:2))
     
+    #assign protected characteristics to column names
+    colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
+    
+    #remove redundant first rows
+    filtered_df <- filtered_df %>% dyplr::slice(-c(1:2))
+    
+    #write to csv for that antibiotic
     write_filename <- glue("{abxlist[abx]}_fairdf.csv")
     
     write_csv(filtered_df,write_filename)
@@ -676,7 +799,6 @@ fairdf_cleaner <- function(T_df,F_df) {
   }
   
 }
-
 
 ##Model performance check
 
@@ -688,7 +810,7 @@ metrics_df <- read_csv("main_analysis_metrics.csv") %>%
   pivot_wider(names_from=`Sub-metric`,values_from=Score)
 accuracy_vec = metrics_df %>% select(Accuracy) %>% filter(!is.na(Accuracy)) %>% unlist()
 metrics_df[14:26,7] <- accuracy_vec
-metrics_df <- metrics_df %>% slice(1:26)
+metrics_df <- metrics_df %>% dyplr::slice(1:26)
 performance_results <- data.frame(matrix(ncol = ncol(metrics_df),nrow = 0))
 for (i in 1:13) {
   s_val <- metrics_df[i,]
@@ -780,26 +902,18 @@ urines_aware$n_waR_standard6 <- urines_aware %>% number_R_standard(watch_abs)
 write_csv(urines_aware,"urines_aware_no_van.csv")
 
 ###Assemble data frame for dot plot data visualisation
-create_df <- function(df, col_name, aware_result, panel) {
-  result <- df %>%
-    select({{ col_name }}) %>%
-    cbind(AWaRe_results = aware_result, Panel = panel) %>%
-    as.data.frame()
-  colnames(result) <- c("n", "AWaRe_results", "Panel")
-  return(result)
-}
-acs_PDAST6 <- create_df(urines_aware, n_acS_PDAST6, "PDAST\nAccess S", "PDAST")
-acs_standard6 <- create_df(urines_aware, n_acS_standard6, "Standard\nAccess S", "Standard")
-was_PDAST6 <- create_df(urines_aware, n_waS_PDAST6, "PDAST\nWatch S", "PDAST")
-was_standard6 <- create_df(urines_aware, n_waS_standard6, "Standard\nWatch S", "Standard")
-all_PDAST6 <- create_df(urines_aware, n_allS_PDAST6, "PDAST\nAll S", "PDAST")
-all_standard6 <- create_df(urines_aware, n_allS_standard6, "Standard\nAll S", "Standard")
-acr_PDAST6 <- create_df(urines_aware, n_acR_PDAST6, "PDAST\nAccess R", "PDAST")
-acr_standard6 <- create_df(urines_aware, n_acR_standard6, "Standard\nAccess R", "Standard")
-war_PDAST6 <- create_df(urines_aware, n_waR_PDAST6, "PDAST\nWatch R", "PDAST")
-war_standard6 <- create_df(urines_aware, n_waR_standard6, "Standard\nWatch R", "Standard")
-allr_PDAST6 <- create_df(urines_aware, n_allR_PDAST6, "PDAST\nAll R", "PDAST")
-allr_standard6 <- create_df(urines_aware, n_allR_standard6, "Standard\nAll R", "Standard")
+acs_PDAST6 <- assemble_astdotplot(urines_aware, n_acS_PDAST6, "PDAST\nAccess S", "PDAST")
+acs_standard6 <- assemble_astdotplot(urines_aware, n_acS_standard6, "Standard\nAccess S", "Standard")
+was_PDAST6 <- assemble_astdotplot(urines_aware, n_waS_PDAST6, "PDAST\nWatch S", "PDAST")
+was_standard6 <- assemble_astdotplot(urines_aware, n_waS_standard6, "Standard\nWatch S", "Standard")
+all_PDAST6 <- assemble_astdotplot(urines_aware, n_allS_PDAST6, "PDAST\nAll S", "PDAST")
+all_standard6 <- assemble_astdotplot(urines_aware, n_allS_standard6, "Standard\nAll S", "Standard")
+acr_PDAST6 <- assemble_astdotplot(urines_aware, n_acR_PDAST6, "PDAST\nAccess R", "PDAST")
+acr_standard6 <- assemble_astdotplot(urines_aware, n_acR_standard6, "Standard\nAccess R", "Standard")
+war_PDAST6 <- assemble_astdotplot(urines_aware, n_waR_PDAST6, "PDAST\nWatch R", "PDAST")
+war_standard6 <- assemble_astdotplot(urines_aware, n_waR_standard6, "Standard\nWatch R", "Standard")
+allr_PDAST6 <- assemble_astdotplot(urines_aware, n_allR_PDAST6, "PDAST\nAll R", "PDAST")
+allr_standard6 <- assemble_astdotplot(urines_aware, n_allR_standard6, "Standard\nAll R", "Standard")
 acs_df <- data.frame(rbind(acs_PDAST6,acs_standard6,
                            was_PDAST6,was_standard6,
                            all_PDAST6,all_standard6,
@@ -841,11 +955,13 @@ pdast_all_abs <- urines_aware %>% number_abs_pdast()
 ###Count S results per antimicrobial for standard approach
 standard_all_abs <- urines_aware %>% number_abs_standard()
 
-###Assemble data frame for dot plot data visualisation
+###Assemble data frame for cleveland antibotic plot data visualisation
 abs_df <- bind_rows(
   standard_all_abs %>% data.frame() %>% mutate(Approach = "Standard"),
   pdast_all_abs %>% data.frame() %>% mutate(Approach = "PDAST")
 ) %>% mutate(ind = ab_name(ind))
+
+###Calculate differences between approaches for each ab and bind vertically into new tibble
 abs_diffs <- map_df(all_abs, function(abs) {
   abs_df %>% 
     minuser(abs) %>% 
@@ -878,6 +994,8 @@ abs_df <- abs_df %>%
     ind = factor(ind, levels = filter(., Approach == "Standard") %>% arrange(values) %>% pull(ind)),
     aware = if_else(ind %in% ab_name(access_abs), "Access", "Watch")
   )
+
+###Denote whether WHO Access or Watch by name colour
 axiscols <- if_else(
   abs_df %>% filter(Approach == "Standard") %>% arrange(values) %>% pull(ind) %in% ab_name(access_abs),
   "seagreen", "darkorange"
@@ -1054,65 +1172,6 @@ coef_keymaker("urines_coef_df.csv")
 
 ###Cleaning and separating fairness data frames
 fairdf_cleaner("T_fairness_metrics.csv","F_fairness_metrics.csv")
-
-fairdf_cleaner <- function(T_df,F_df) {
-  
-  T_df <- read_csv(T_df)
-  F_df <- read_csv(F_df)
-  
-  T_df <- T_df %>% t() %>% data.frame() %>% 
-    mutate(Parameter = colnames(T_df)) %>% 
-    left_join(coefkey,by="Parameter") %>% relocate(Parameter_name,.before=1) %>% 
-    select(-Parameter)
-  female_vector <- c("Female", F_df$MALE)
-  Female <- data.frame(t(female_vector), stringsAsFactors = FALSE)
-  colnames(Female) <- colnames(T_df)
-  T_df <- T_df %>% 
-    add_row(Female,.before=3)
-  
-  n_characteristics <- function(ref_df,prefix,column_name) {
-    
-    column_name <- enquo(column_name)
-    
-    ref_df %>% distinct(subject_id,.keep_all=T) %>% count(!!column_name) %>% 
-      mutate(Parameter = str_c(prefix,!!column_name)) %>% 
-      left_join(coefkey,by="Parameter") %>% select(-Parameter,-!!column_name) %>% 
-      rename(Characteristic = "Parameter_name")
-    
-  }
-  
-  n_key <- rbind(
-    urines_ref %>% n_characteristics("race_",race),
-    urines_ref %>% n_characteristics("marital_status_",marital_status),
-    urines_ref %>% n_characteristics("insurance_",insurance),
-    urines_ref %>% n_characteristics("standard_age_",standard_age),
-    urines_ref %>% n_characteristics("language_",language),
-    urines_ref %>% count(MALE) %>% 
-      mutate(Characteristic = case_when(MALE~"Male",TRUE~"Female")) %>% 
-      select(-MALE)) %>% tibble()
-  
-  abxlist <- c("AMP","SAM","TZP","CZO","CRO","CAZ","FEP","MEM","CIP",
-               "GEN","SXT","NIT","VAN")
-  
-  for (abx in seq_along(abxlist)) {
-    
-    filtered_df <- cbind(Characteristic = T_df$Parameter_name,
-                         T_df[, which(T_df[1, ] == abxlist[abx])])
-    colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
-    filtered_df <- filtered_df %>% slice(-c(1:2)) %>% 
-      left_join(n_key,by="Characteristic") %>% relocate(n,.before="Accuracy")
-    
-    write_filename <- glue("{abxlist[abx]}_fairdf.csv")
-    
-    write_csv(filtered_df,write_filename)
-    
-  }
-  
-  
-  
-}
-
-
 
 ###Aggregated race fairness analysis on microsimulation dataset
 
