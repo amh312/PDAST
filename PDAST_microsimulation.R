@@ -961,7 +961,7 @@ abs_df <- bind_rows(
   pdast_all_abs %>% data.frame() %>% mutate(Approach = "PDAST")
 ) %>% mutate(ind = ab_name(ind))
 
-###Calculate differences between approaches for each ab and bind vertically into new tibble
+###Calculate differences between approaches for each ab and bind rows into new tibble
 abs_diffs <- map_df(all_abs, function(abs) {
   abs_df %>% 
     minuser(abs) %>% 
@@ -1005,20 +1005,35 @@ write_csv(abs_df,"sourcedata_abs_cleveplot.csv")
 
 ###Cleveland dot plot of number of S results per antimicrobial agent
 s_results_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
+  
+  #lines between points for performance distance between approaches
   geom_line(aes(group=ind),alpha=0.5)+
+  
+  #points indicating approaches
   geom_point(aes(color=Approach),size=4) +
+  
+  #x-y flip
   coord_flip() +
+  
+  #green for pdast, red points for standard
   scale_color_manual(values=c("#00BFC4","#F8766D"))+
+  
+  #annotate with plus and minus differences calculated using minuser function
   geom_text(data = abs_diffs, aes(color = better, 
                                   label = as.character(glue("+{values2}"))),
             size = 3,hjust=0.5) +
+  
+  #titles
   ggtitle("Total number of susceptible AST results by antimicrobial agent")+
   xlab("") +
   ylab("Total number of susceptible results") +
+  
+  #theme and access/watch text colours
   theme_minimal() +
   theme(axis.text.y = element_text(
     colour = axiscols))
 
+#save to pdf
 ggsave("s_results_by_ab.pdf", plot = s_results_by_ab, device = "pdf", width = 10, height = 4,
        path="/Users/alexhoward/Documents/Projects/UDAST_code")
 
@@ -1053,7 +1068,7 @@ watch_r_n_0s <- c()
 ###Assign vector of decision thresholds
 cutoffseq <- c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9)
 
-###Iterate above analyses over decision threshold vector
+###Iterate above analyses over decision threshold vector and get performances
 for (j in cutoffseq) {
   
   ur_aware_sens <- urines_aware %>% select(-(PDAST_1:PDAST_12))  
@@ -1174,7 +1189,6 @@ coef_keymaker("urines_coef_df.csv")
 fairdf_cleaner("T_fairness_metrics.csv","F_fairness_metrics.csv")
 
 ###Aggregated race fairness analysis on microsimulation dataset
-
 ref_urines_aware <- pos_urines %>% mutate(charttime = as_datetime(charttime)) %>% 
                                             semi_join(urines_aware,by="micro_specimen_id")
 ref_white <- ref_urines_aware %>% filter(grepl("WHITE",race))
