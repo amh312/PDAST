@@ -23,7 +23,7 @@ urines_diags <- read_csv("urines_aware_no_van.csv")
 
 ##Preprocessing
 
-###Join current antmicrobial prescription to urines dataframe
+###Join current antimicrobial prescription to urines dataframe
 ab_key <- abx %>% filter(is_abx) %>% 
   select(subject_id,abx_name,starttime,stoptime)
 urines_abx <- urines_abx %>% left_join(ab_key,by="subject_id") %>% 
@@ -88,32 +88,51 @@ abx_graph$abx_name <- factor(abx_graph$abx_name,
                                distinct(abx_name) %>% unlist())
 max_count <- ceiling(abx_graph1 %>% select(-Panel,-Result) %>% 
   group_by(abx_name) %>% mutate(n=sum(n)) %>% arrange(desc(n)) %>%
-  ungroup() %>% slice(1) %>% select(n) %>% unlist() /25) * 25
+  ungroup() %>% dplyr::slice(1) %>% select(n) %>% unlist() /25) * 25
 
 write_csv(abx_graph,"sourcedata_prescr_abx.csv")
 
-###Data visualisation of antimicrobial-result matches
+###Data visualisation of antimicrobial-result matches (back to back bar plot)
 abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Standard", -n, n),
-                      fill = Result)) +
-  geom_bar(stat = "identity", position = "stack") +
+                      fill = Result,color=Result)) +
+  
+  #stacked bars
+  geom_bar(stat = "identity", width=0.85,position = "stack") +
+  
+  #set plot area based on max and min in both directions
   scale_y_continuous(
     limits = c(-max_count, max_count), 
     breaks = seq(-max_count, max_count, by = 25), 
     labels = abs(seq(-max_count, max_count, by = 25)) 
   ) +
+  
+  #x-y flip
   coord_flip() +
+  
+  #axis labels
   labs(y = "Number of results", x = "Antimicrobial agent prescribed",
        fill = "Result") +
+  
+  #theme, ticks, and legend title
+  theme_minimal() +
   theme(axis.text.y = element_text(size = 12), 
         axis.title.y = element_text(size = 14),
         axis.title.x = element_text(size = 14),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12)) +
+  
+  #set buffer zone distance of bars from x axis
   scale_x_discrete(expand = expansion(mult = c(0.1, 0.2))) +
+  
+  #add central vertical line
   geom_hline(yintercept = 0,linetype="solid",color="black") +
+  
+  #plot title and approach labels
   ggtitle("Results provided for the antimicrobial agent prescribed (inpatients)") +
   geom_text(x=13.5,y=-100,label="Standard approach",color="#3C3C3C",size=4) +
   geom_text(x=13.5,y=100,label="Personalised approach",color="#3C3C3C",size=4) +
+  
+  #theme, grid and ab label colours based on aware class
   theme(plot.title = element_text(size = 16, margin = margin(b = 20)),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
@@ -121,8 +140,9 @@ abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Stan
         axis.text.y = element_text(
           colour = axiscols))
 
+#save to pdf
 ggsave("abx_prescribed.pdf", plot = abx_prescribed, device = "pdf", width = 10, height = 4,
-       path="#FILEPATH#")
+       path="/Users/alexhoward/Documents/Projects/UDAST_code")
 
 ###Counting the total number of antimicrobial-result matches per paneL
 PDAST_total <- totaller("PDAST")
