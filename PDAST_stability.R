@@ -5,8 +5,10 @@
 ###Compiling dataframes for mean risk analysis
 risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
   
+  #sub-function to calculate mape for each result type and make boolean dummy vsars
   error_dummies <- function(df) {
     
+    #if intermediates and not testeds
     if ("I" %in% colnames(df) & "NT" %in% colnames(df)) {
       
       df %>% select(-1) %>% 
@@ -23,6 +25,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
                R_error = abs(R - R_error),
                NT_error = abs(NT - NT_error))
       
+      #if intermediates but no not testeds
     } else if ("I" %in% colnames(df) & !("NT" %in% colnames(df))) {
       
       df %>% select(-1) %>% 
@@ -40,6 +43,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
                R_error = abs(R - R_error),
                NT_error = abs(NT - NT_error))
       
+      #if not testeds but no intermediates
     } else if ("NT" %in% colnames(df) & !("I" %in% colnames(df))) {
       
       df <- df %>% select(-1) %>% 
@@ -57,6 +61,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
                R_error = abs(R - R_error),
                NT_error = abs(NT - NT_error))
       
+      #if no not testeds or intermediates
     } else if (!("NT" %in% colnames(df)) & !("I" %in% colnames(df))) {
       
       df <- df %>% select(-1) %>% 
@@ -78,6 +83,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
     
   }
   
+  #sub-function to get mean probability values and mapes for each result type and traing size
   train_sizer <- function(df,train_size_val) {
     
     df %>% filter(train_size==train_size_val) %>% group_by(model) %>% 
@@ -90,6 +96,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
     
   }
   
+  #read-in csvs for each training size
   p2 <- read_csv(csv1)
   p3 <- read_csv(csv2)
   p4 <- read_csv(csv3)
@@ -99,6 +106,7 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
   p8 <- read_csv(csv7)
   p9 <- read_csv(csv8)
   
+  #label training sizes
   p2$train_size <- 0.16
   p3$train_size <- 0.14
   p4$train_size <- 0.12
@@ -108,10 +116,13 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
   p8$train_size <- 0.04
   p9$train_size <- 0.02
   
+  #bind into single df
   p_df <- data.frame(rbind(p2,p3,p4,p5,p6,p7,p8,p9))
   
+  #calculate mape values for whole df
   p_df <- error_dummies(p_df)
   
+  #run prob and mape calculations for df and bind together
   mean_risk_df <- data.frame(rbind(
     p_df %>% train_sizer(0.02),
     p_df %>% train_sizer(0.04),
@@ -123,69 +134,95 @@ risk_df_func <- function(csv1,csv2,csv3,csv4,csv5,csv6,csv7,csv8,abx) {
     p_df %>% train_sizer(0.16)
   ))
   
+  #add name of antimicrobial of interest
   mean_risk_df$Antimicrobial <- abx
   mean_risk_df
   
 }
 
-###Calculate and visualise mean risk instability
+###Plot visualise mean risk instability
 mean_risk_instab <- function(df,antimicrobial,save_as) {
   
+  #characterise and factorise training dataset size
   df$train_size <- as.character(df$train_size)
   df$train_size <- factor(df$train_size,levels=c("0.16","0.14","0.12","0.1","0.08","0.06","0.04","0.02"))
   
-  plot <- ggplot(df, aes(x=1-meanR,group=train_size,color=train_size)) +
+  #density plot of mean probabilities
+  mriplot <- ggplot(df, aes(x=1-meanR,group=train_size,color=train_size)) +
     geom_density()+
     xlim(c(0,1)) +
+    
+    #labels
     labs(color="Training\nsample\nproportion")+
     xlab("Mean estimated probability of susceptibility")+
     ylab("Frequency in 100 model outputs")+
+    
+    #theme and tick removal
+    theme_minimal() +
     theme(axis.text.y = element_blank(),
           axis.ticks.y = element_blank())+
+    
+    #title
     ggtitle(glue("{antimicrobial}:\nInstability in mean estimated probability of susceptibility"))
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  #save as pdf
+  ggsave(save_as, plot = mriplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  mriplot
   
 }
 
 ###Calculate and visualise risk distribution instability
 risk_dist_instab <- function(csv,antimicrobial,save_as) {
   
+  #read in csv
   df <- read_csv(csv)
   
+  #make blank df
   this <- data.frame(matrix(ncol=2,nrow=0))
   colnames(this) <- c("Probability","model")
   
+  #iterate over the 100 seeds
   for (i in 2:101) {
     
+    #get specified seed and resistance probability
     this2 <- df %>% filter(model==i-1) %>% select(R,model)
+    
+    #sync up column names
     colnames(this2) = colnames(this)
     
+    #bind to dataframe
     this <- data.frame(rbind(this,this2))
     
   }
   
-  plot <- ggplot(this,aes(x=1-Probability,group=model)) +
+  #boxplot of probability distributions across seeds
+  rdiplot <- ggplot(this,aes(x=1-Probability,group=model)) +
     geom_boxplot(outlier.alpha = 0.01,outlier.colour ="#00BFC4",fill="#00BFC4") +
+    
+    #title and probability limits
     ggtitle(glue("{antimicrobial}:\nInstability in 100 sets of susceptibility probability predictions\n(Training sample reduced to 2% of dataset)"))+
     xlim(0,1)+
+    
+    #theme, ticks, and title
+    theme_minimal() +
     theme(axis.text.y=element_blank(),
           axis.ticks.y=element_blank()) +
     xlab("Estimated probabilities of susceptibility")
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  #save to pdf
+  ggsave(save_as, plot = rdiplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  rdiplot
   
 }
 
 ###Calculate and visualise mean absolute prediction error instability
 mape_instab <- function(df,antimicrobial,save_as) {
   
+  #make dataframes for each training dataset size
   ya <- df %>% filter(train_size==0.02)
   ya <- mean(ya$meanRer)
   yb <- df %>% filter(train_size==0.04)
@@ -203,10 +240,18 @@ mape_instab <- function(df,antimicrobial,save_as) {
   yh <- df %>% filter(train_size==0.16)
   yh <- mean(yh$meanRer)
   
-  plot <- ggplot(df,aes(x=train_size,y=meanRer))+
+  #jitter plot of mapes to show all values
+  mapeplot <- ggplot(df,aes(x=train_size,y=meanRer))+
     geom_jitter(width=0.005,alpha=0.1) +
+    
+    #limits based on probability and range of observed values
     ylim(c(0,1)) +
     xlim(c(0,0.18)) +
+    
+    #theme
+    theme_minimal() +
+    
+    #segment lines to show mean values
     geom_segment(aes(x=0.015,xend=0.025,y=ya,yend=ya))+
     geom_segment(aes(x=0.035,xend=0.045,y=yb,yend=yb))+
     geom_segment(aes(x=0.055,xend=0.065,yc,yend=yc))+
@@ -215,20 +260,24 @@ mape_instab <- function(df,antimicrobial,save_as) {
     geom_segment(aes(x=0.115,xend=0.125,y=yf,yend=yf))+
     geom_segment(aes(x=0.135,xend=0.145,y=yg,yend=yg))+
     geom_segment(aes(x=0.155,xend=0.165,y=yh,yend=yh))+
+    
+    #titles and labels
     ggtitle(glue("{antimicrobial}:\nInstability in mean absolute susceptibility\nprediction error with smaller training datasets")) +
     xlab("Training dataset proportion of whole dataset") +
     ylab("Mean absolute prediction error")
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  #save as pdf
+  ggsave(save_as, plot = mapeplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  mapeplot
   
 }
 
 ###Calculate and visualise mean AUC prediction error instability
 meanAUC_instab <- function(df,antimicrobial,save_as) {
   
+  #make auroc dataframes for each training dataset size
   ya <- df %>% filter(train_size==0.02)
   ya <- 1-mean(ya$meanAUC)
   yb <- df %>% filter(train_size==0.04)
@@ -246,10 +295,16 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
   yh <- df %>% filter(train_size==0.16)
   yh <- 1-mean(yh$meanAUC)
   
-  plot <- ggplot(df,aes(x=train_size,y=1-meanAUC))+
+  #jitter plot of aurocs across 100 seeds
+  aurocplot <- ggplot(df,aes(x=train_size,y=1-meanAUC))+
     geom_jitter(width=0.005,alpha=0.1) +
+    
+    #theme and limits
+    theme_minimal() +
     ylim(c(0,1)) +
     xlim(c(0,0.18)) +
+    
+    #segment plots for mean values at each training dataset size
     geom_segment(aes(x=0.015,xend=0.025,y=ya,yend=ya))+
     geom_segment(aes(x=0.035,xend=0.045,y=yb,yend=yb))+
     geom_segment(aes(x=0.055,xend=0.065,yc,yend=yc))+
@@ -258,14 +313,17 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
     geom_segment(aes(x=0.115,xend=0.125,y=yf,yend=yf))+
     geom_segment(aes(x=0.135,xend=0.145,y=yg,yend=yg))+
     geom_segment(aes(x=0.155,xend=0.165,y=yh,yend=yh))+
+    
+    #titles and labels
     ggtitle(glue("{antimicrobial}:\nInstability in AUC-ROC with smaller training datasets")) +
     xlab("Training dataset proportion of whole dataset") +
     ylab("AUC-ROC")
   
-  ggsave(save_as, plot = plot, device = "pdf", width = 6, height = 6,
+  #save to pdf
+  ggsave(save_as, plot = aurocplot, device = "pdf", width = 6, height = 6,
          path="/Users/alexhoward/Documents/Projects/UDAST_code")
   
-  plot
+  aurocplot
   
 }
 
@@ -275,6 +333,7 @@ default_aucrocs <- read_csv("default_aucrocs.csv")
 ##Maximum mean difference and standard deviation
 maxmeasures <- function(df,abx) {
   
+  #calculate means/sds for each training dataset size
   thisdf <- df %>% group_by(train_size) %>% 
     mutate(meanAUC = 1-meanAUC) %>% 
     summarise(mAUC = mean(meanAUC),sdAUC = sd(meanAUC)) %>% ungroup() %>% 
@@ -282,10 +341,15 @@ maxmeasures <- function(df,abx) {
              pull(AUC_ROC),
            meandiff = mAUC - mainAUC)
   
-  maxmean <- thisdf %>% arrange(desc(abs(meandiff))) %>% slice(1) %>% 
+  #get maximum difference in means between training sizes
+  maxmean <- thisdf %>% arrange(desc(abs(meandiff))) %>% dplyr::slice(1) %>% 
     mutate(WhichMax="Meandiff",Antimicrobial=abx)
-  maxsd <- thisdf %>% arrange(desc(sdAUC)) %>% slice(1) %>% mutate(
+  
+  #get maximum sd difference between training sizes
+  maxsd <- thisdf %>% arrange(desc(sdAUC)) %>% dplyr::slice(1) %>% mutate(
     WhichMax = "SD",Antimicrobial=abx)
+  
+  #put mean and sd differences into a table
   rbind(maxmean,maxsd) %>% tibble
   
 }
@@ -418,8 +482,8 @@ nitmax <- nit_risk_df %>% maxmeasures("NIT")
 vanmax <- van_risk_df %>% maxmeasures("VAN")
 max_df <- rbind(ampmax,sammax,tzpmax,czomax,cromax,cazmax,fepmax,
                 memmax,cipmax,genmax,sxtmax,nitmax,vanmax) %>% tibble()
-max_meandiff <- max_df %>% arrange(desc(abs(meandiff))) %>% slice(1)
-max_sd <- max_df %>% arrange(desc(sdAUC)) %>% slice(1)
+max_meandiff <- max_df %>% arrange(desc(abs(meandiff))) %>% dplyr::slice(1)
+max_sd <- max_df %>% arrange(desc(sdAUC)) %>% dplyr::slice(1)
 max_df %>% arrange(desc(abs(meandiff)))
 glue("The maximum difference between AUC-ROC in the main analysis and
      the stability analysis was {round(max_meandiff %>% pull(meandiff),3)}, for {ab_name(max_meandiff %>% pull(Antimicrobial))}
