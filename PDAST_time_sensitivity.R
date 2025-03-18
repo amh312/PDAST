@@ -10,14 +10,17 @@ yearjoin <- function(df) {
 ###Descriptive analysis table
 yeartab <- function(df1,group1,df2,group2) {
   
+  #sub-function to count by year group
   yearcount <- function(df,group) {
     df %>% count(anchor_year_group) %>% 
       mutate(Dataset = group)
   }
   
+  #apply to model development and microsim datasets
   df1 <- df1 %>% yearcount(group1)
   df2 <- df2 %>% yearcount(group2)
   
+  #bind into table
   df1 %>% 
     rbind(df2)
   
@@ -26,16 +29,29 @@ yeartab <- function(df1,group1,df2,group2) {
 ###Year group splitting
 timesplit <- function(df) {
   
+  #get vectors of year groups and sort by time
   timegroups <- df %>% distinct(anchor_year_group) %>% pull(anchor_year_group) %>% 
     sort()
+  
+  #assign to global environment
   assign(timegroups,timegroups)
+  
+  #turn df name into a string
   newdf_prefix <- deparse(substitute(df))
   
+  #iterate along time periods
   for (i in seq_along(timegroups)) {
     
+    #filter to time period of interest
     df1 <- df %>% filter(anchor_year_group == timegroups[i])
+    
+    #make new name from dataset name string and add _i
     new_name <- paste0(newdf_prefix, "_", i)
+    
+    #assign new df to global environment
     assign(new_name, df1, envir = .GlobalEnv)
+    
+    #print to check it's worked
     print(glue("{new_name} contains year group {timegroups[i]}"))
     
   }
@@ -45,11 +61,16 @@ timesplit <- function(df) {
 ###Preprocessing and writing for Python
 binary_write <- function(df,filename) {
   
+  #select outcomes and features
   df <- df %>% select(AMP:VAN,pAMPr:pTPN)
   urref <- df %>% select(AMP:VAN)
+  
+  #binarise multinomial ast results to r and s
   urref[urref=="NT"] <- "R"
   urref[urref=="I"] <- "S"
   df[,1:13] <- urref
+  
+  #write to new csv before returning df
   write_csv(df,filename)
   
   df
@@ -59,7 +80,7 @@ binary_write <- function(df,filename) {
 ###Saving jitter plot to PDF
 save_plot_as_pdf <- function(plot, filename) {
   ggsave(filename, plot = plot, device = "pdf", width = 10, height = 10,
-         path="#FILEPATH#")
+         path="/Users/alexhoward/Documents/Projects/UDAST_code")
 }
 
 ##Preprocessing and descriptive analysis
@@ -106,9 +127,9 @@ write_csv(ur_aware_t_4,"ur_aware_t_4.csv")
 
 ##Cross-validation across all time periods
 
-reticulate::use_condaenv("#CONDAENV_FILEPATH#")
-reticulate::source_python("#FILEPATH#//Imports & functions.py")
-reticulate::source_python("#FILEPATH#//UDAST_time.py")
+reticulate::use_condaenv("CPE")
+reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Imports & functions.py")
+reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//UDAST_time.py")
 
 ##Data visualisation
 
@@ -141,31 +162,43 @@ mean_data <- aucgraph %>%
   summarise(meanAUC = mean(value))
 ablist <- ablist %>% str_replace("/","-")
 
+#iterate along antibiotic list
 for (i in seq_along(ablist)) {
   
+  #sub-iterate along time periods
   for (j in seq_along(timegroups)) {
     
-this <- ggplot(aucgraph %>% filter(Antimicrobial==ablist[i] &
+    #jitter plot of aurocs across time periods
+timeplot <- ggplot(aucgraph %>% filter(Antimicrobial==ablist[i] &
                              Training==timegroups[j]),
        aes(x=Testing,y=value,group=Training)) +
   geom_jitter(width=0.2,alpha=0.3) +
+  
+  #segment lines for mean auroc values
   geom_segment(data = mean_data %>% filter(Antimicrobial==ablist[i] &
                                              Training==timegroups[j]), 
                aes(x = as.numeric(factor(Testing))-0.2,
                    xend = as.numeric(factor(Testing))+0.2,
                    y = meanAUC,
                    yend = meanAUC)) +
+  
+  #auroc limits
   ylim(0,1) +
+  
+  #theme and titles
+  theme_minimal() +
   xlab("Testing dataset") +
   ylab("AUC-ROC Value") +
   ggtitle((glue("Out-of-sample performance for {ablist[i]} susceptibility prediction using
                 {timegroups[j]} training dataset and 20 random train-test splits")))
 
+#make plot filename and assign to global environment
 x <- paste(ablist[i],timegroups[j], sep="_")
-assign(x,this)
+assign(x,timeplot)
 
+#save pdf under specified filename
 pdf_filename <- paste0(x, ".pdf")
-save_plot_as_pdf(this, pdf_filename)
+save_plot_as_pdf(timeplot, pdf_filename)
 
 
   }
