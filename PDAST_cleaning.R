@@ -1403,7 +1403,7 @@ missing_check(pos_urines)
 top_m_orgs <- function(df) {
   top_m_org <- function(df,ab) {
     df %>% count(org_fullname) %>%
-      arrange(desc(n)) %>% slice(1) %>% cbind(abx=ab)
+      arrange(desc(n)) %>% dplyr::slice(1) %>% cbind(abx=ab)
   }
   rbind(
     pos_urines %>% filter(is.na(PEN)) %>% top_m_org("PEN"),
@@ -1505,7 +1505,7 @@ missing_check(pos_urines)
 top_m_orgs <- function(df) {
   top_m_org <- function(df,ab) {
     df %>% count(org_fullname) %>%
-      arrange(desc(n)) %>% slice(1) %>% cbind(abx=ab)
+      arrange(desc(n)) %>% dplyr::slice(1) %>% cbind(abx=ab)
   }
   rbind(
     pos_urines %>% filter(is.na(PEN)) %>% top_m_org("PEN"),
