@@ -199,6 +199,40 @@ prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_even
   
 }
 
+###Applying previous organism check to list elements
+apply_prev_orgevent <- function(df, param,organism) {
+  
+  df %>%
+    
+    #individual check for growth of each organism in the last year
+    prev_event_type_assign(!!sym(param), urine_df, org_fullname,organism, 365, 1)
+  
+}
+
+###Applying treatment check to antibiotics in list (1y and 1w)
+apply_prev_rx365 <- function(df, suffix, antibiotic) {
+  
+  #past p for previous onto chosen antibiotic from list
+  param_name <- paste0("p", suffix)
+  
+  df %>%
+    
+    #check for treatment in the last year
+    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 1)
+  
+}
+apply_prev_rx7 <- function(df, suffix, antibiotic) {
+  
+  #add d7 prefix to antibiotic of interest in the list
+  param_name <- paste0("d7", suffix)
+  
+  df %>%
+    
+    #check for that antibiotic prescription in the last 7 days
+    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 7, 1)
+  
+}
+
 ###Finding abnormal inflammatory markers on day of urine test
 labevent_search <- function(df,search_term,feature_name) {
   
@@ -329,6 +363,36 @@ assign_bmi_events <- function(df, bmi_df, categories, days, min_events) {
   
 }
 
+###Check for outpatient
+outpatient_check <- function(df) {
+  
+  #if no admission location, assign to outpatient
+  df %>% mutate(admission_location=case_when(is.na(admission_location) ~ "OUTPATIENT",
+                                             TRUE~admission_location))
+  
+}
+
+###BMI categories based on cutoffs
+categorise_bmi <- function(df) {
+  df %>%
+    
+    #filter care events df to bmi checks
+    filter(grepl("BMI", result_name)) %>%
+    mutate(
+      
+      #assign bmi categories based on cutoffs
+      BMI_cat = case_when(
+        as.numeric(result_value) >= 30 ~ "Obese",
+        as.numeric(result_value) >= 25 & as.numeric(result_value) < 30 ~ "Overweight",
+        as.numeric(result_value) >= 18.5 & as.numeric(result_value) < 25 ~ "Normal weight",
+        as.numeric(result_value) < 18.5 ~ "Underweight"
+      ),
+      
+      #make admittime variable to facilitate mimer previous event search
+      admittime = as.POSIXct(chartdate, format = '%Y-%m-%d %H:%M:%S')
+    )
+}
+
 ###Data upload (CSV files accessible at https://physionet.org/content/mimiciv/2.2/)
 pos_urines <- read_csv("pos_urines_pre_features.csv") #urines cleaned in PDAST_cleaning
 omr <- read_csv("omr.csv") #Measurements e.g., height, weight
@@ -380,18 +444,10 @@ urine_df <- micro %>% filter(test_name=="URINE CULTURE" & !is.na(org_fullname)) 
 organisms <- urine_df %>% count(org_fullname) %>% arrange(desc(n)) %>% 
    slice(1:10) %>% pull(org_fullname)
 params <- paste0("pG", organisms,"Urine")
-apply_prev_event <- function(df, param,organism) {
-  
-  df %>%
-    
-    #individual check for growth of each organism in the last year
-    prev_event_type_assign(!!sym(param), urine_df, org_fullname,organism, 365, 1)
-  
-  }
 pos_urines <- reduce(seq_along(organisms), function(df, i) {
   
   #check for previous organism growth across the params list (see above)
-  apply_prev_event(df, params[i], organisms[i])
+  apply_prev_orgevent(df, params[i], organisms[i])
   
   },
   .init = pos_urines) %>%
@@ -416,42 +472,20 @@ suffixes <- c("AMPrx", "AMXrx", "AMCrx", "SAMrx", "TZPrx", "CZOrx", "CZOrx", "CZ
               "AZMrx", "CLIrx", "VANrx", "MTRrx", "LNZrx", "DAPrx", "DOXrx")
 
 ###At least one inpatient antimicrobial prescription in the last year
-apply_prev_rx <- function(df, suffix, antibiotic) {
-  
-  #past p for previous onto chosen antibiotic from list
-  param_name <- paste0("p", suffix)
-  
-  df %>%
-    
-    #check for treatment in the last year
-    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 1)
-  
-  }
 pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
   
   #check for previous antibiotic prescriptions across full antibiotic list
-  apply_prev_rx(df, suffixes[i], antibiotics[i])
+  apply_prev_rx365(df, suffixes[i], antibiotics[i])
   
   },
   .init = pos_urines) %>%
   ungroup()
 
 ###At least one inpatient antimicrobial prescription in the last week
-apply_prev_rx <- function(df, suffix, antibiotic) {
-  
-  #add d7 prefix to antibiotic of interest in the list
-  param_name <- paste0("d7", suffix)
-  
-  df %>%
-    
-    #check for that antibiotic prescription in the last 7 days
-    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 7, 1)
-  
-  }
 pos_urines <- reduce(seq_along(antibiotics), function(df, i) {
 
   #check across full antibiotic list for last-7-day prescriptions
-  apply_prev_rx(df, suffixes[i], antibiotics[i])
+  apply_prev_rx7(df, suffixes[i], antibiotics[i])
   
   },
   .init = pos_urines) %>%
@@ -501,13 +535,6 @@ pos_urines <- pos_urines %>%
   demographic_assign(language) #Whether the patient speaks English
 
 ###Hospital admission from outpatient location
-outpatient_check <- function(df) {
-  
-  #if no admission location, assign to outpatient
-  df %>% mutate(admission_location=case_when(is.na(admission_location) ~ "OUTPATIENT",
-                                             TRUE~admission_location))
-  
-}
 hadm_admission <- hadm %>%
   select(hadm_id,admission_location) %>% outpatient_check() %>% 
   mutate(hadm_id = case_when(is.na(hadm_id) ~ 0,
@@ -550,25 +577,6 @@ pos_urines <- pos_urines %>% left_join(serv_key,by="hadm_id") %>% mutate(
                            TRUE ~ curr_service))
 
 ###At least one measured obese, underweight, or overweight BMI category in the last 3 years
-categorise_bmi <- function(df) {
-  df %>%
-    
-    #filter care events df to bmi checks
-    filter(grepl("BMI", result_name)) %>%
-    mutate(
-      
-      #assign bmi categories based on cutoffs
-      BMI_cat = case_when(
-        as.numeric(result_value) >= 30 ~ "Obese",
-        as.numeric(result_value) >= 25 & as.numeric(result_value) < 30 ~ "Overweight",
-        as.numeric(result_value) >= 18.5 & as.numeric(result_value) < 25 ~ "Normal weight",
-        as.numeric(result_value) < 18.5 ~ "Underweight"
-      ),
-      
-      #make admittime variable to facilitate mimer previous event search
-      admittime = as.POSIXct(chartdate, format = '%Y-%m-%d %H:%M:%S')
-    )
-}
 bmi <- categorise_bmi(omr)
 bmi_categories <- c("Obese", "Underweight", "Overweight")
 pos_urines <- assign_bmi_events(pos_urines, bmi, bmi_categories, 1095, 1) %>%
