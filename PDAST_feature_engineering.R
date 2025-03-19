@@ -124,23 +124,23 @@ NT_assigner <- function(df) {
 prev_AST_applier <- function(df1,micro_data,suffix,result,timeframe=365,n_events=1) {
   
   #paste prefix and ast result suffix for previous onto ab list
-  params <- paste0("p", antibiotics, suffix)
+  ab_featnames <- paste0("p", antibiotics, suffix)
   
   #apply prev event sub-function
-  apply_prev_event <- function(df, param, antibiotic) {
+  apply_prev_event <- function(df, featname, antibiotic) {
     
     df %>%
       
       #run prev ast result check for chosen antibiotic
-      prev_event_type_assign(!!sym(param), micro_data, !!sym(antibiotic), result, timeframe, n_events)
+      prev_event_type_assign(!!sym(featname), micro_data, !!sym(antibiotic), result, timeframe, n_events)
   
     }
   
   #use reduce to repeatedly replace urine target df
   df1 <- reduce(seq_along(antibiotics), function(df, i) {
     
-    #apply 'apply prev event' across ab list and new var names (params)
-    apply_prev_event(df, params[i], antibiotics[i])
+    #apply 'apply prev event' across ab list and new var names
+    apply_prev_event(df, ab_featnames[i], antibiotics[i])
     
     },
     
@@ -200,12 +200,12 @@ prev_rx_assign <- function(df, B_var, drug_df, abx, abx_groupvar,no_days,no_even
 }
 
 ###Applying previous organism check to list elements
-apply_prev_orgevent <- function(df, param,organism) {
+apply_prev_orgevent <- function(df, featname,organism) {
   
   df %>%
     
     #individual check for growth of each organism in the last year
-    prev_event_type_assign(!!sym(param), urine_df, org_fullname,organism, 365, 1)
+    prev_event_type_assign(!!sym(featname), urine_df, org_fullname,organism, 365, 1)
   
 }
 
@@ -213,23 +213,23 @@ apply_prev_orgevent <- function(df, param,organism) {
 apply_prev_rx365 <- function(df, suffix, antibiotic) {
   
   #past p for previous onto chosen antibiotic from list
-  param_name <- paste0("p", suffix)
+  abx_featname <- paste0("p", suffix)
   
   df %>%
     
     #check for treatment in the last year
-    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 365, 1)
+    prev_rx_assign(!!sym(abx_featname), drugs, antibiotic, ab_name, 365, 1)
   
 }
 apply_prev_rx7 <- function(df, suffix, antibiotic) {
   
   #add d7 prefix to antibiotic of interest in the list
-  param_name <- paste0("d7", suffix)
+  abx_featname <- paste0("d7", suffix)
   
   df %>%
     
     #check for that antibiotic prescription in the last 7 days
-    prev_rx_assign(!!sym(param_name), drugs, antibiotic, ab_name, 7, 1)
+    prev_rx_assign(!!sym(abx_featname), drugs, antibiotic, ab_name, 7, 1)
   
 }
 
@@ -301,11 +301,11 @@ prev_ICD_applier <- function(df,icd_df,prefix,codes) {
   apply_prev_event_assignments <- function(df, code) {
     
     #paste prefix to icd code
-    param_name <- paste0(prefix, code)
+    icd_featname <- paste0(prefix, code)
     
     #check for icd diagnosis in the last year
     df %>%
-      prev_event_type_assign(!!sym(param_name), icd_df, icd_group, code, 365, 1)
+      prev_event_type_assign(!!sym(icd_featname), icd_df, icd_group, code, 365, 1)
     
     }
   
@@ -350,10 +350,10 @@ assign_bmi_events <- function(df, bmi_df, categories, days, min_events) {
   reduce(categories, function(acc, category) {
     
     #append p for previous to element in bmi category list
-    param <- paste0("p", category)
+    bmi_featname <- paste0("p", category)
     
     #check for previous instance of that category
-    prev_event_type_assign(acc, !!sym(param), bmi_df, BMI_cat, category, days, min_events)
+    prev_event_type_assign(acc, !!sym(bmi_featname), bmi_df, BMI_cat, category, days, min_events)
     
     },
     
@@ -443,11 +443,11 @@ urine_df <- micro %>% filter(test_name=="URINE CULTURE" & !is.na(org_fullname)) 
   mutate(admittime=charttime)
 organisms <- urine_df %>% count(org_fullname) %>% arrange(desc(n)) %>% 
    dplyr::slice(1:10) %>% pull(org_fullname)
-params <- paste0("pG", organisms,"Urine")
+org_featnames <- paste0("pG", organisms,"Urine")
 pos_urines <- reduce(seq_along(organisms), function(df, i) {
   
-  #check for previous organism growth across the params list (see above)
-  apply_prev_orgevent(df, params[i], organisms[i])
+  #check for previous organism growth across the feature names list (see above)
+  apply_prev_orgevent(df, org_featnames[i], organisms[i])
   
   },
   .init = pos_urines) %>%
