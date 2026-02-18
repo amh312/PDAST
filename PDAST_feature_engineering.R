@@ -617,5 +617,5 @@ org_recipe <- recipe(~org_fullname,data=pos_urines)
 org_dummies <- org_recipe %>% step_dummy(org_fullname) %>% prep(training = pos_urines)
 org_dummydata <- bake(org_dummies,new_data = NULL)
 pos_urines <- pos_urines %>% cbind(org_dummydata) %>% tibble()
-write_csv(pos_urines,"pos_urines_w_features")
+write_csv(pos_urines,"pos_urines_w_features.csv")
 
