@@ -60,38 +60,19 @@ org_collapse <- function(df,col_name) {
 }
 
 ###Wrapping function to apply collapse across multiple resistances
+
 big_org_collapse <- function(df) {
   
-  df %>% 
-    org_collapse(org_fullname_Enterobacter) %>% 
-    org_collapse(org_fullname_Enterobacter.asburiae) %>% 
-    org_collapse(org_fullname_Enterobacter.cancerogenus) %>% 
-    org_collapse(org_fullname_Enterobacter.cloacae) %>%
-    org_collapse(org_fullname_Enterobacter.cloacae.complex) %>%
-    org_collapse(org_fullname_Enterococcus) %>%
-    org_collapse(org_fullname_Enterococcus.casseliflavus) %>%
-    org_collapse(org_fullname_Enterococcus.faecalis) %>%
-    org_collapse(org_fullname_Enterococcus.faecium) %>%
-    org_collapse(org_fullname_Enterococcus.gallinarum) %>%
-    org_collapse(org_fullname_Enterococcus.hirae) %>%
-    org_collapse(org_fullname_Escherichia.coli) %>%
-    org_collapse(org_fullname_Hafnia.alvei) %>%
-    org_collapse(org_fullname_Klebsiella.aerogenes) %>%
-    org_collapse(org_fullname_Klebsiella.oxytoca) %>%
-    org_collapse(org_fullname_Klebsiella.pneumoniae) %>%
-    org_collapse(org_fullname_Morganella.morganii) %>%
-    org_collapse(org_fullname_Proteus.mirabilis) %>%
-    org_collapse(org_fullname_Proteus.vulgaris) %>%
-    org_collapse(org_fullname_Proteus.penneri) %>%
-    org_collapse(org_fullname_Providencia.rettgeri) %>%
-    org_collapse(org_fullname_Providencia.stuartii) %>%
-    org_collapse(org_fullname_Pseudomonas.aeruginosa) %>%
-    org_collapse(org_fullname_Pseudomonas.putida) %>%
-    org_collapse(org_fullname_Raoultella.ornithinolytica) %>%
-    org_collapse(org_fullname_Raoultella.planticola) %>%
-    org_collapse(org_fullname_Serratia.marcescens) %>%
-    org_collapse(org_fullname_Staphylococcus.aureus) %>%
-    distinct(micro_specimen_id,.keep_all = T)
+  col_names <- df %>% select(contains("org_fullname_")) %>% colnames()
+  
+  for(i in seq_along(col_names)){
+  
+  df <- df %>% 
+    org_collapse(!!sym(col_names[i]))
+  
+  }
+  
+    df %>% distinct(micro_specimen_id,.keep_all = T)
   
 }
 
@@ -126,7 +107,7 @@ collapser <- function(df) {
     
   }
   
-  df %>% 
+  df <- df %>% 
     res_collapse(AMP) %>% 
     res_collapse(SAM) %>%
     res_collapse(TZP) %>%
@@ -139,36 +120,18 @@ collapser <- function(df) {
     res_collapse(GEN) %>%
     res_collapse(SXT) %>%
     res_collapse(NIT) %>%
-    res_collapse(VAN) %>%
-    org_collapse(org_fullname_Enterobacter) %>% 
-    org_collapse(org_fullname_Enterobacter.asburiae) %>% 
-    org_collapse(org_fullname_Enterobacter.cancerogenus) %>% 
-    org_collapse(org_fullname_Enterobacter.cloacae) %>%
-    org_collapse(org_fullname_Enterobacter.cloacae.complex) %>%
-    org_collapse(org_fullname_Enterococcus) %>%
-    org_collapse(org_fullname_Enterococcus.casseliflavus) %>%
-    org_collapse(org_fullname_Enterococcus.faecalis) %>%
-    org_collapse(org_fullname_Enterococcus.faecium) %>%
-    org_collapse(org_fullname_Enterococcus.gallinarum) %>%
-    org_collapse(org_fullname_Enterococcus.hirae) %>%
-    org_collapse(org_fullname_Escherichia.coli) %>%
-    org_collapse(org_fullname_Hafnia.alvei) %>%
-    org_collapse(org_fullname_Klebsiella.aerogenes) %>%
-    org_collapse(org_fullname_Klebsiella.oxytoca) %>%
-    org_collapse(org_fullname_Klebsiella.pneumoniae) %>%
-    org_collapse(org_fullname_Morganella.morganii) %>%
-    org_collapse(org_fullname_Proteus.mirabilis) %>%
-    org_collapse(org_fullname_Proteus.vulgaris) %>%
-    org_collapse(org_fullname_Proteus.penneri) %>%
-    org_collapse(org_fullname_Providencia.rettgeri) %>%
-    org_collapse(org_fullname_Providencia.stuartii) %>%
-    org_collapse(org_fullname_Pseudomonas.aeruginosa) %>%
-    org_collapse(org_fullname_Pseudomonas.putida) %>%
-    org_collapse(org_fullname_Raoultella.ornithinolytica) %>%
-    org_collapse(org_fullname_Raoultella.planticola) %>%
-    org_collapse(org_fullname_Serratia.marcescens) %>%
-    org_collapse(org_fullname_Staphylococcus.aureus) %>%
-    distinct(micro_specimen_id,.keep_all = T)
+    res_collapse(VAN)
+    
+  col_names <- df %>% select(contains("org_fullname_")) %>% colnames()
+  
+  for(i in seq_along(col_names)){
+    
+    df <- df %>% 
+      org_collapse(!!sym(col_names[i]))
+    
+  }
+    
+    df %>% distinct(micro_specimen_id,.keep_all = T)
   
 }
 
@@ -225,7 +188,7 @@ ml_prep <- function(df,abx) {
   df <- df %>% filter(!grepl("Enterococcus",org_fullname))
   
   #list of intrinsic resistances
-  reskey <- AMR::intrinsic_resistant
+  reskey <- AMR::intrinsic_resistant %>% mutate(mo=as.character(mo))
   colnames(reskey) <- c("org_name","ab")
   
   #remove organisms with intrinsic resistance
@@ -258,7 +221,7 @@ mod_var_select_save <- function(df,filename) {
 
 ###Dataset summary for study flow chart
 dataset_summary <- function(df,mic_dataset) {
-
+  
   #get n patients (raw)
   patients <- nrow(df %>% filter(!is.na(subject_id)) %>% distinct(subject_id))
   
@@ -344,7 +307,7 @@ desc_summary <- function(df,pats_df,hadm_df) {
         `n (% of patients)` = paste0(
           as.character(n)," (",as.character(`% of patients`),")"
         )) %>% select(Race,`n (% of patients)`)
-      
+    
     
   } else{
     
@@ -362,7 +325,7 @@ desc_summary <- function(df,pats_df,hadm_df) {
         `n (% of patients)` = paste0(
           as.character(n)," (",as.character(`% of patients`),")"
         )) %>% select(Race,`n (% of patients)`)
-      
+    
     
   }
   
@@ -390,8 +353,8 @@ desc_summary <- function(df,pats_df,hadm_df) {
     mutate(`% of specimens`=round((n/nrow(df %>% 
                                             distinct(micro_specimen_id)))*100,1),
            `n (% of specimens)` = paste0(
-              as.character(n)," (",as.character(`% of specimens`),")"
-            )) 
+             as.character(n)," (",as.character(`% of specimens`),")"
+           )) 
   
   named <- all_orgs %>% filter(`% of specimens` >0) %>% rename(`Organism grown` = "org_fullname")
   
@@ -404,7 +367,7 @@ desc_summary <- function(df,pats_df,hadm_df) {
             `n (% of specimens)` = paste0(
               as.character(n)," (",as.character(`% of specimens`),")"
             )
-            )
+    )
   
   all_orgs <- rbind(named,other) %>% tibble()
   
@@ -563,6 +526,9 @@ sir_summary <- function(df) {
   
 }
 
+##Read-in
+pos_urines <- read_csv("pos_urines_w_features.csv")
+
 ##Preprocessing to assign stem MD dataset and microsimulation dataset
 
 ###Filter to the last urine for each subject and collapse AST results
@@ -711,7 +677,3 @@ dataset_summary(urines_ref,"validation") ####Testing dataset
 desc_summary(urines_ref,pats,hadm)
 desc_summary(pre_urines,pats,hadm)
 sir_summary(urines_assess)
-
-
-
-
