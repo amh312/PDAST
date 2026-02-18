@@ -359,7 +359,7 @@ res_sim <- function(df,col,condition,col2,condition2,antibiotic,alpha_prior,beta
         
         #histogram and labels
         type="h",col="darkblue",xlab="Estimated prevalence of resistance",ylab="Probability density",
-           main = glue("Estimated prevalence of {antimicrobial_name} resistance in {N_star} {condition}{extra} isolates"),cex.axis= 1.5,cex.lab=1.5,lwd=4)
+        main = glue("Estimated prevalence of {antimicrobial_name} resistance in {N_star} {condition}{extra} isolates"),cex.axis= 1.5,cex.lab=1.5,lwd=4)
       
       #10,000 samples from posterior distribution
       samples <- sample( p , prob=posterior , size=1e4 , replace=TRUE )
@@ -1769,11 +1769,11 @@ missing_check(pos_urines)
 ###Impute 'not tested' variable for missing Enterococus meropenem and septrin results
 not_tested <- function(df) {
   df %>% mutate(MEM = case_when(grepl("Enterococcus",org_fullname) &
-                                          is.na(MEM) ~ "NT",
-                                        TRUE ~ MEM),
-                        SXT = case_when(grepl("Enterococcus",org_fullname) &
-                                          is.na(SXT) ~ "NT",
-                                        TRUE ~ SXT))
+                                  is.na(MEM) ~ "NT",
+                                TRUE ~ MEM),
+                SXT = case_when(grepl("Enterococcus",org_fullname) &
+                                  is.na(SXT) ~ "NT",
+                                TRUE ~ SXT))
 }
 pos_urines <- pos_urines %>% not_tested()
 micro <- micro %>% not_tested()
@@ -1795,10 +1795,14 @@ missing_check(pos_urines)
 micro <- micro %>% semi_join(pos_urines, by="subject_id") %>% 
   filter(!grepl('URINE', spec_type_desc))
 
+pos_urines %>% count(org_fullname) %>% arrange(desc(n)) %>% 
+  print(n=100)
+
+###Manually remove candida by new species names
+pos_urines <- pos_urines %>% filter(
+  !grepl("(Nakas|Pichia|Clavis)",org_fullname)
+)
+
 ###Write csvs
 write_csv(pos_urines,"pos_urines_pre_features.csv")
 write_csv(micro,"micro_clean2.csv")
-
-
-
-
