@@ -1373,6 +1373,8 @@ urines <- micro %>% filter(grepl('URINE', spec_type_desc))
 pos_urines <- urines %>% filter(!is.na(org_name))
 write_csv(pos_urines,"raw_pos_urines.csv")
 write_csv(micro,"micro_clean2.csv")
+pos_urines <- read_csv("raw_pos_urines.csv")
+micro <- read_csv("micro_clean2.csv")
 
 ###Missing AST check 1
 missing_check <- function(df) {
