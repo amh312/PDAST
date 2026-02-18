@@ -1323,6 +1323,7 @@ diagnoses <- read_csv("diagnoses_icd.csv") #ICD-coded diagnoses
 procedures <- read_csv("procedures_icd.csv") #ICD-coded procedures
 poedetail <- read_csv("poe_detail.csv") #Care event codes
 poe <- read_csv("poe.csv") #Care events
+hadm <- read_csv("admissions.csv") #Admissions data
 
 ##Initial cleaning of raw datasets
 
