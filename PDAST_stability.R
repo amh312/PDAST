@@ -167,7 +167,7 @@ mean_risk_instab <- function(df,antimicrobial,save_as) {
   
   #save as pdf
   ggsave(save_as, plot = mriplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   mriplot
   
@@ -213,7 +213,7 @@ risk_dist_instab <- function(csv,antimicrobial,save_as) {
   
   #save to pdf
   ggsave(save_as, plot = rdiplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   rdiplot
   
@@ -268,7 +268,7 @@ mape_instab <- function(df,antimicrobial,save_as) {
   
   #save as pdf
   ggsave(save_as, plot = mapeplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   mapeplot
   
@@ -321,7 +321,7 @@ meanAUC_instab <- function(df,antimicrobial,save_as) {
   
   #save to pdf
   ggsave(save_as, plot = aurocplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   aurocplot
   
