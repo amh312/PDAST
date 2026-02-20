@@ -829,11 +829,11 @@ daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_sp
 write_csv(daily_urines,"daily_urines.csv")
 
 ###Set conda environment for reticulate and load python packages/functions
-reticulate::use_condaenv("PersonalisedAST_testing")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/PersonalisedAST_testing/Imports & functions.py")
+reticulate::use_condaenv("#CONDAENV#")
+reticulate::source_python("#FILEPATH#/Imports & functions.py")
 
 ###Make probability predictions
-reticulate::source_python("/Users/alexhoward/Documents/Projects/PersonalisedAST_testing/Prediction_run.py")
+reticulate::source_python("#FILEPATH#/Prediction_run.py")
 
 ###Filter out vancomycin (not used in final analysis)
 probs_df_overall <- read_csv("probs_df_overall.csv")
