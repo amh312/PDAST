@@ -578,7 +578,7 @@ accdiff <- function(df1,df2,ab,abx) {
 }
 
 ###Populating model coefficient full names
-coef_keymaker <- function(reference_filename) {
+coef_keymaker <- function(reference_filename,abxlist) {
   
   #sub-function for antibiotic-related feature names as statements
   appender <- function(column_list,prefix,suffix,condition,timeframe) {
@@ -737,20 +737,19 @@ coef_keymaker <- function(reference_filename) {
   )
   
   #bind cleaned feature names to old feature names to make key
-  coefkey <- data.frame(Parameter_name=parameter_key,Parameter=df %>% colnames() %>% append("Intercept")) %>% tibble()
-  
-  #assign coefficient table to global environment
-  assign("coefkey",coef_key)
+  coef_key <- data.frame(Parameter_name=parameter_key,Parameter=df %>% colnames() %>% append("Intercept")) %>% tibble()
   
   #use key to clean coefficient tables for each ab and replace their csvs with the clean ones
   csv_list <- c()
   for (i in seq_along(abxlist)) {
     this_csv <- read_csv(glue("{abxlist[i]}_coef_list.csv"))
-    this_csv <- this_csv %>% left_join(coefkey,by="Parameter") %>% 
+    this_csv <- this_csv %>% left_join(coef_key,by="Parameter_name") %>% 
       relocate(Parameter_name,.before="Parameter") %>% 
       select(-Parameter)
     write_csv(this_csv,glue("{abxlist[i]}_coef_list.csv"))
   }
+  
+  return(coef_key)
   
 }
 
@@ -829,11 +828,11 @@ daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_sp
 write_csv(daily_urines,"daily_urines.csv")
 
 ###Set conda environment for reticulate and load python packages/functions
-reticulate::use_condaenv("#CONDAENV#")
-reticulate::source_python("#CONDAENV_FILEPATH#/Imports & functions.py")
+reticulate::use_condaenv("#CONDAENV_NAME#")
+reticulate::source_python("#CONDA_FILEPATH#/Imports & functions.py")
 
 ###Make probability predictions
-reticulate::source_python("#CONDAENV_FILEPATH#/Prediction_run.py")
+reticulate::source_python("#CONDA_FILEPATH#/Prediction_run.py")
 
 ###Filter out vancomycin (not used in final analysis)
 probs_df_overall <- read_csv("probs_df_overall.csv")
@@ -1181,7 +1180,7 @@ pwr_access_plot <- sens_zeroplot_access %>%
 
 ##Coefficient list cleaning
 
-coef_keymaker("urines_coef_df.csv")
+coef_key <- coef_keymaker("urines_coef_df.csv",all_abs)
 
 ##Fairness analysis
 
@@ -1189,6 +1188,7 @@ coef_keymaker("urines_coef_df.csv")
 fairdf_cleaner("T_fairness_metrics.csv","F_fairness_metrics.csv")
 
 ###Aggregated race fairness analysis on microsimulation dataset
+pos_urines <- read_csv("pos_urines_w_features.csv")
 ref_urines_aware <- pos_urines %>% mutate(charttime = as_datetime(charttime)) %>% 
   semi_join(urines_aware,by="micro_specimen_id")
 ref_white <- ref_urines_aware %>% filter(grepl("WHITE",race))
