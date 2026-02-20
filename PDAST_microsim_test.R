@@ -373,7 +373,7 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
   
   #sacve to pdf
   ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = ast_dotplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   ast_dotplot
   
@@ -494,7 +494,7 @@ rpp_plot <- function(df,standard_column,agents,save_as) {
   
   #save as pdf
   ggsave(save_as, plot = rppplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   rppplot
   
@@ -538,7 +538,7 @@ pwr_plot <- function(df,standard_column,agents,save_as) {
   
   #save to pdf
   ggsave(save_as, plot = pwrplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   pwrplot
   
@@ -1018,7 +1018,7 @@ s_results_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
 
 #save pdf
 ggsave("test_s_results_by_ab.pdf", plot = s_results_by_ab, device = "pdf", width = 10, height = 4,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+       path="#FILEPATH#")
 
 ##Decision threshold sensitivity analysis
 
