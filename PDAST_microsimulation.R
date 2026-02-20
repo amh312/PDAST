@@ -830,10 +830,10 @@ write_csv(daily_urines,"daily_urines.csv")
 
 ###Set conda environment for reticulate and load python packages/functions
 reticulate::use_condaenv("#CONDAENV#")
-reticulate::source_python("#FILEPATH#/Imports & functions.py")
+reticulate::source_python("#CONDAENV_FILEPATH#/Imports & functions.py")
 
 ###Make probability predictions
-reticulate::source_python("#FILEPATH#/Prediction_run.py")
+reticulate::source_python("#CONDAENV_FILEPATH#/Prediction_run.py")
 
 ###Filter out vancomycin (not used in final analysis)
 probs_df_overall <- read_csv("probs_df_overall.csv")
