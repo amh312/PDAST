@@ -28,8 +28,8 @@ ab_key <- abx %>% filter(is_abx) %>%
   select(subject_id,abx_name,starttime,stoptime)
 urines_abx <- urines_abx %>% left_join(ab_key,by="subject_id") %>% 
   mutate(on_ab = case_when(
-  storetime > starttime & storetime < stoptime ~ TRUE,
-  TRUE ~ FALSE )) %>% filter(on_ab)
+    storetime > starttime & storetime < stoptime ~ TRUE,
+    TRUE ~ FALSE )) %>% filter(on_ab)
 
 ###Convert I to S and NT to R
 urref <- urines_abx %>% select(AMP:VAN)
@@ -63,7 +63,10 @@ urines_abx <- urines_abx %>%
   ungroup()
 
 ###Prepare data frame for bar plot
-ablist <- ablist %>% str_replace("-","/")
+ablist <- c("AMP","SAM","CZO",
+             "GEN","SXT","NIT",
+             "TZP","CRO","CAZ",
+             "FEP","MEM","CIP") %>% ab_name() %>% str_replace("-","/")
 urines_abx <- urines_abx %>% filter(abx_name %in% ablist &abx_name!="Vancomycin")
 abx_graph1 <- urines_abx %>% count(abx_name,on_standard,on_PDAST) %>% 
   filter(!(on_standard=="NT" & on_PDAST=="NT")) %>% 
@@ -87,14 +90,14 @@ abx_graph$abx_name <- factor(abx_graph$abx_name,
                                arrange(n) %>% ungroup() %>% 
                                distinct(abx_name) %>% unlist())
 max_count <- ceiling(abx_graph1 %>% select(-Panel,-Result) %>% 
-  group_by(abx_name) %>% mutate(n=sum(n)) %>% arrange(desc(n)) %>%
-  ungroup() %>% dplyr::slice(1) %>% select(n) %>% unlist() /25) * 25
+                       group_by(abx_name) %>% mutate(n=sum(n)) %>% arrange(desc(n)) %>%
+                       ungroup() %>% dplyr::slice(1) %>% select(n) %>% unlist() /25) * 25
 
 write_csv(abx_graph,"sourcedata_prescr_abx.csv")
 
 ###Data visualisation of antimicrobial-result matches (back to back bar plot)
 abx_prescribed <- ggplot(abx_graph, aes(x = abx_name, y = if_else(Panel == "Standard", -n, n),
-                      fill = Result,color=Result)) +
+                                        fill = Result,color=Result)) +
   
   #stacked bars
   geom_bar(stat = "identity", width=0.85,position = "stack") +
@@ -184,7 +187,7 @@ urines_abx <- urines_abx %>% rowwise() %>%
       any(row == "S")
     }),
     Standard_S_in_range = case_when(GEN=="S"|NIT=="S"|
-                                       SXT=="S" ~ TRUE,
+                                      SXT=="S" ~ TRUE,
                                     TRUE ~ FALSE),
     PDAST_ac_alt = case_when(PDAST_S_in_range & abx_name %in% ab_name(watch_abs) ~ TRUE,
                              TRUE ~ FALSE),
@@ -198,12 +201,12 @@ urines_abx <- urines_abx %>% mutate(PDAST_gen_out = case_when(
   TRUE~TRUE
 ),
 PDAST_ivost = case_when(abx_name %in% ab_name(ivs_only) &
-  PDAST_ac_alt & NIT=="S"|SXT=="S"|AMP=="S"|SAM=="S" ~TRUE,
-  TRUE~FALSE
+                          PDAST_ac_alt & NIT=="S"|SXT=="S"|AMP=="S"|SAM=="S" ~TRUE,
+                        TRUE~FALSE
 ),
 Standard_ivost = case_when( abx_name %in% ab_name(ivs_only) &
-  Standard_ac_alt & NIT=="S"|SXT=="S"|AMP=="S"|SAM=="S" ~TRUE,
-  TRUE~FALSE
+                              Standard_ac_alt & NIT=="S"|SXT=="S"|AMP=="S"|SAM=="S" ~TRUE,
+                            TRUE~FALSE
 ))
 
 n_pdast_ivost <- sum(urines_abx$PDAST_ivost)
@@ -218,10 +221,3 @@ glue("The personalised approach provided an opportunity to switch from a
      using the standard approach
      
      ")
-
-
-
-
-
-
-
