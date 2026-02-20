@@ -26,7 +26,7 @@ aware_mkI = function(df,spec_id,panel_size,acs_cutoff=0.5) {
     arrange(desc(aware_utility)) %>% select(Antimicrobial,aware_utility) %>% 
     
     #trim to chosen ast panel size and rename columns
-    mutate(aware_utility = round(aware_utility,1)) %>% dyplr::slice(1:panel_size) %>% 
+    mutate(aware_utility = round(aware_utility,1)) %>% dplyr::slice(1:panel_size) %>% 
     rename(`Recommended tests` = "Antimicrobial",`AWaRe Utility` = "aware_utility")
   
 }
@@ -94,7 +94,7 @@ assign_standard <- function(df,probab_df,micro_df,method_used) {
     
     df[[standard_columns[i]]] <- standard_panel[i]
     
-    }
+  }
   
   df
   
@@ -111,11 +111,11 @@ number_SorI_pdast <- function(df,which_abs) {
     
     #count number of s or i results in that specimen's pdast panel
     n_ac_s <- sum((df %>%
-                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                     dyplr::slice(i)) == "S" |
+                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dplyr::slice(i)) == "S" |
                     (df %>%
-                       select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                       dyplr::slice(i)) == "I")
+                       select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                       dplyr::slice(i)) == "I")
     
     #add to vector
     n_all_s <- n_all_s %>% append(n_ac_s)
@@ -137,8 +137,8 @@ number_R_pdast <- function(df,which_abs) {
     
     #check n r results for watch agents and append
     n_wa_r <- sum((df %>%
-                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                     dyplr::slice(i)) == "R")
+                     select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dplyr::slice(i)) == "R")
     
     n_watch_r <- n_watch_r %>% append(n_wa_r)
     
@@ -160,12 +160,12 @@ number_SorI_standard <- function(df,which_abs) {
     #check n access s or i results in panel and append
     n_ac_s <- sum((df %>%
                      select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                     dyplr::slice(i)) == "S" |
+                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dplyr::slice(i)) == "S" |
                     (df %>%
                        select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                             STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                       dyplr::slice(i)) == "I")
+                                                             STANDARD_7,STANDARD_8,STANDARD_11) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                       dplyr::slice(i)) == "I")
     
     n_all_s <- n_all_s %>% append(n_ac_s)
     
@@ -187,8 +187,8 @@ number_R_standard <- function(df,which_abs) {
     #check n r watch results and append
     n_wa_r <- sum((df %>%
                      select(all_of(intersect(df %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),which_abs))) %>% 
-                     dyplr::slice(i)) == "R")
+                                                           STANDARD_7,STANDARD_8,STANDARD_11) %>%dplyr::slice(i) %>% unlist(),which_abs))) %>% 
+                     dplyr::slice(i)) == "R")
     
     n_watch_r <- n_watch_r %>% append(n_wa_r)
     
@@ -208,12 +208,12 @@ number_abs_pdast <- function(df) {
     
     #check which antibiotics have s or i results and append to vector
     all_s <- df %>%
-      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
-      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
+      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dplyr::slice(i) %>% unlist(),all_abs))) %>% 
+      dplyr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
     
     all_i <- df %>%
-      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
-      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
+      select(all_of(intersect(df %>% select(PDAST_1:PDAST_6) %>%dplyr::slice(i) %>% unlist(),all_abs))) %>% 
+      dplyr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
     
     ac_si <- all_s %>% append(all_i)
     
@@ -237,13 +237,13 @@ number_abs_standard <- function(df) {
     #get names of abs with s or i results
     all_s <- df %>%
       select(all_of(intersect(urines_aware %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
-      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
+                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dplyr::slice(i) %>% unlist(),all_abs))) %>% 
+      dplyr::slice(i) %>% t() %>% data.frame() %>% filter(. =="S") %>% rownames()
     
     all_i <- df %>%
       select(all_of(intersect(urines_aware %>% select(STANDARD_1,STANDARD_2,STANDARD_3,
-                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dyplr::slice(i) %>% unlist(),all_abs))) %>% 
-      dyplr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
+                                                      STANDARD_7,STANDARD_8,STANDARD_11) %>%dplyr::slice(i) %>% unlist(),all_abs))) %>% 
+      dplyr::slice(i) %>% t() %>% data.frame() %>% filter(. =="I") %>% rownames()
     
     
     ac_si <- all_s %>% append(all_i)
@@ -265,28 +265,28 @@ minuser <- function(df,abx) {
   
   #if neither zero and pdast better, display pos difference
   if(nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==2 &
-     abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="PDAST") {
+     abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dplyr::slice(1) =="PDAST") {
     
-    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1) -
-      abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(2)
+    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(1) -
+      abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(2)
     
     #if neither zero and standard better, display neg difference
   } else if (nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==2 &
-             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="Standard"){
+             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dplyr::slice(1) =="Standard"){
     
-    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1) -
-        abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(2))
+    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(1) -
+        abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(2))
     
     #if standard zero and pdast better, display pos difference from zero
   } else if (nrow(abs_df %>% filter(ind==ab_name(abx)) %>% select(1)) ==1 &
-             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dyplr::slice(1) =="PDAST") {
+             abs_df %>% filter(ind==ab_name(abx)) %>% select(Approach) %>% dplyr::slice(1) =="PDAST") {
     
-    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1)
+    abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(1)
     
     #if pdast zero and standard better, display neg difference from zero
   } else {
     
-    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dyplr::slice(1))
+    -(abs_df %>% filter(ind==ab_name(abx)) %>% select(1) %>% dplyr::slice(1))
     
   }
   
@@ -363,7 +363,7 @@ main_dotplotter <- function(df,pdast_1,standard_1,pdast_2,standard_2,
   
   #save to pdf
   ggsave(glue("{left_label}_{right_label}_plot.pdf"), plot = df_plot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   df_plot
   
@@ -486,7 +486,7 @@ rpp_plot <- function(df,standard_column,agents,save_as) {
   
   #save to pdf
   ggsave(save_as, plot = rppplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   rppplot
   
@@ -517,7 +517,7 @@ pwr_plot <- function(df,standard_column,agents,save_as) {
           plot.margin = unit(c(1,1,1,1),"cm"))
   
   ggsave(save_as, plot = pwrplot, device = "pdf", width = 6, height = 6,
-         path="/Users/alexhoward/Documents/Projects/UDAST_code")
+         path="#FILEPATH#")
   
   pwrplot
   
@@ -570,11 +570,11 @@ accdiff <- function(df1,df2,ab,abx) {
   
   #accuracy difference between white and non-white patients
   difference <- paste0("Difference: ",(accuracy_function(df1,probs_df_overall,ab_name(ab),!!abx) -
-      accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100)
+                                         accuracy_function(df2,probs_df_overall,ab_name(ab),!!abx))*100)
   print(difference)  
   
   c(white,nonwhite,difference)
-
+  
 }
 
 ###Populating model coefficient full names
@@ -789,7 +789,7 @@ fairdf_cleaner <- function(T_df,F_df) {
     colnames(filtered_df)[2:ncol(filtered_df)] <- filtered_df[2,2:ncol(filtered_df)]
     
     #remove redundant first rows
-    filtered_df <- filtered_df %>% dyplr::slice(-c(1:2))
+    filtered_df <- filtered_df %>% dplyr::slice(-c(1:2))
     
     #write to csv for that antibiotic
     write_filename <- glue("{abxlist[abx]}_fairdf.csv")
@@ -810,7 +810,7 @@ metrics_df <- read_csv("main_analysis_metrics.csv") %>%
   pivot_wider(names_from=`Sub-metric`,values_from=Score)
 accuracy_vec = metrics_df %>% select(Accuracy) %>% filter(!is.na(Accuracy)) %>% unlist()
 metrics_df[14:26,7] <- accuracy_vec
-metrics_df <- metrics_df %>% dyplr::slice(1:26)
+metrics_df <- metrics_df %>% dplyr::slice(1:26)
 performance_results <- data.frame(matrix(ncol = ncol(metrics_df),nrow = 0))
 for (i in 1:13) {
   s_val <- metrics_df[i,]
@@ -823,17 +823,17 @@ write_csv(performance_results,"peformance_results.csv")
 
 ##Preprocessing for microsimulation
 
-###Set conda environment for reticulate and load python packages/functions
-reticulate::use_condaenv("CPE")
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Imports & functions.py")
-
 ###Assign datasets for microsimulation and probability predictions
 urines_aware <- read_csv("urines_assess.csv")
 daily_urines <- tibble(urines_aware %>% ungroup() %>% select(subject_id,micro_specimen_id,pAMPr:pTPN))
 write_csv(daily_urines,"daily_urines.csv")
 
+###Set conda environment for reticulate and load python packages/functions
+reticulate::use_condaenv("PersonalisedAST_testing")
+reticulate::source_python("/Users/alexhoward/Documents/Projects/PersonalisedAST_testing/Imports & functions.py")
+
 ###Make probability predictions
-reticulate::source_python("/Users/alexhoward/Documents/Projects/UDAST_code//Prediction_run.py")
+reticulate::source_python("/Users/alexhoward/Documents/Projects/PersonalisedAST_testing/Prediction_run.py")
 
 ###Filter out vancomycin (not used in final analysis)
 probs_df_overall <- read_csv("probs_df_overall.csv")
@@ -934,15 +934,15 @@ write_csv(summdf,"sourcedata_aware_dotplot.csv")
 
 ###Main dot plot of number of all S results and Access S results per panel
 main_aware_plot <- acs_df %>% main_dotplotter("PDAST\nAll S","Standard\nAll S","PDAST\nAccess S","Standard\nAccess S",
-                           "All agents","WHO Access agents")
+                                              "All agents","WHO Access agents")
 
 ###Dot plot of number of all R results and Access R results per panel
 accessr_aware_plot <- acs_df %>% main_dotplotter("PDAST\nAll R","Standard\nAll R","PDAST\nAccess R","Standard\nAccess R",
-                           "All agents (R)","WHO access agents (R)","(Access agent resistance)")
+                                                 "All agents (R)","WHO access agents (R)","(Access agent resistance)")
 
 ###Dot plot of number of Watch S results and Watch R results per panel
 watch_plot <- acs_df %>% main_dotplotter("PDAST\nWatch S","Standard\nWatch S","PDAST\nWatch R","Standard\nWatch R",
-                           "WHO watch agents (S)","WHO watch agents (R)","(Watch agent results)")
+                                         "WHO watch agents (S)","WHO watch agents (R)","(Watch agent results)")
 
 ###Tests of statistical significance for Access and all susceptible results
 urines_aware %>% stats_reporter(n_acS_PDAST6, n_allS_PDAST6, n_acS_standard6, n_allS_standard6)
@@ -1035,7 +1035,7 @@ s_results_by_ab <- ggplot(abs_df,aes(x=ind,y=values))+
 
 #save to pdf
 ggsave("s_results_by_ab.pdf", plot = s_results_by_ab, device = "pdf", width = 10, height = 4,
-       path="/Users/alexhoward/Documents/Projects/UDAST_code")
+       path="#FILEPATH#")
 
 ##Decision threshold sensitivity analysis
 
@@ -1116,7 +1116,7 @@ for (j in cutoffseq) {
   watch_r_iqr25 <- append(watch_r_iqr25,quantile(n_watch_r)[2])
   watch_r_iqr75 <- append(watch_r_iqr75,quantile(n_watch_r)[4])
   watch_r_n_0s <- append(watch_r_n_0s,sum(n_watch_r ==0))
-
+  
 }
 
 ###Assemble sensitivity analysis data frame for results-per-panel data visualisation
@@ -1141,7 +1141,7 @@ sens_mediansplot_df <- data.frame(rbind(
 sens_mediansplot_df$PDAST <- factor(sens_mediansplot_df$PDAST,
                                     levels=c("All S/I","Access S/I"))
 sens_mediansplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
-                                              levels=cutoffseq)
+                                        levels=cutoffseq)
 sens_mediansplot_all <- sens_mediansplot_df %>% filter(PDAST=="All S/I")
 sens_mediansplot_access <- sens_mediansplot_df %>% filter(PDAST=="Access S/I")
 
@@ -1164,7 +1164,7 @@ sens_zeroplot_df <- data.frame(rbind(
 sens_zeroplot_df$PDAST <- factor(sens_zeroplot_df$PDAST,
                                  levels=c("All S/I","Access S/I"))
 sens_zeroplot_df$cutoffseq <- factor(sens_mediansplot_df$cutoffseq,
-                                           cutoffseq)
+                                     cutoffseq)
 sens_zeroplot_all <- sens_zeroplot_df %>% filter(PDAST=="All S/I")
 sens_zeroplot_access <- sens_zeroplot_df %>% filter(PDAST=="Access S/I")
 
@@ -1190,7 +1190,7 @@ fairdf_cleaner("T_fairness_metrics.csv","F_fairness_metrics.csv")
 
 ###Aggregated race fairness analysis on microsimulation dataset
 ref_urines_aware <- pos_urines %>% mutate(charttime = as_datetime(charttime)) %>% 
-                                            semi_join(urines_aware,by="micro_specimen_id")
+  semi_join(urines_aware,by="micro_specimen_id")
 ref_white <- ref_urines_aware %>% filter(grepl("WHITE",race))
 ref_nw <- ref_urines_aware %>% filter(!grepl("WHITE",race))
 probs_df_overall <- probs_df_overall %>% 
@@ -1201,19 +1201,18 @@ probs_df_overall <- probs_df_overall %>%
                      NT >= 0.5 ~ "NT",
                      TRUE ~ NA))
 race_suban <- rbind(
-ref_white %>% accdiff(ref_nw,"AMP",AMP) %>% append(ab_name("AMP")),
-ref_white %>% accdiff(ref_nw,"SAM",SAM) %>% append(ab_name("SAM")),
-ref_white %>% accdiff(ref_nw,"TZP",TZP) %>% append(ab_name("TZP")),
-ref_white %>% accdiff(ref_nw,"CZO",CZO) %>% append(ab_name("CZO")),
-ref_white %>% accdiff(ref_nw,"CRO",CRO) %>% append(ab_name("CRO")),
-ref_white %>% accdiff(ref_nw,"CAZ",CAZ) %>% append(ab_name("CAZ")),
-ref_white %>% accdiff(ref_nw,"FEP",FEP) %>% append(ab_name("FEP")),
-ref_white %>% accdiff(ref_nw,"MEM",MEM) %>% append(ab_name("MEM")),
-ref_white %>% accdiff(ref_nw,"CIP",CIP) %>% append(ab_name("CIP")),
-ref_white %>% accdiff(ref_nw,"GEN",GEN) %>% append(ab_name("GEN")),
-ref_white %>% accdiff(ref_nw,"SXT",SXT) %>% append(ab_name("SXT")),
-ref_white %>% accdiff(ref_nw,"NIT",NIT) %>% append(ab_name("NIT"))) %>% 
+  ref_white %>% accdiff(ref_nw,"AMP",AMP) %>% append(ab_name("AMP")),
+  ref_white %>% accdiff(ref_nw,"SAM",SAM) %>% append(ab_name("SAM")),
+  ref_white %>% accdiff(ref_nw,"TZP",TZP) %>% append(ab_name("TZP")),
+  ref_white %>% accdiff(ref_nw,"CZO",CZO) %>% append(ab_name("CZO")),
+  ref_white %>% accdiff(ref_nw,"CRO",CRO) %>% append(ab_name("CRO")),
+  ref_white %>% accdiff(ref_nw,"CAZ",CAZ) %>% append(ab_name("CAZ")),
+  ref_white %>% accdiff(ref_nw,"FEP",FEP) %>% append(ab_name("FEP")),
+  ref_white %>% accdiff(ref_nw,"MEM",MEM) %>% append(ab_name("MEM")),
+  ref_white %>% accdiff(ref_nw,"CIP",CIP) %>% append(ab_name("CIP")),
+  ref_white %>% accdiff(ref_nw,"GEN",GEN) %>% append(ab_name("GEN")),
+  ref_white %>% accdiff(ref_nw,"SXT",SXT) %>% append(ab_name("SXT")),
+  ref_white %>% accdiff(ref_nw,"NIT",NIT) %>% append(ab_name("NIT"))) %>% 
   data.frame()
 
 write_csv(race_suban,"sourcedata_racesuban.csv")
-
