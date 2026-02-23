@@ -1980,7 +1980,7 @@ def own_time_per(filename_t):
         ###############################
 
         #read in urine df
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
 
         #ensure age is string
         urines5['standard_age'] = urines5['standard_age'].map(str)
@@ -2034,8 +2034,8 @@ def own_time_per(filename_t):
         class_reps['AMP'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"amp_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"amp_" +filename_t + ".pickle"
+        filename = "amp_" + filename_t + ".pickle"
+        fitname = "amp_" +filename_t + ".pickle"
         with open(filename,'wb') as f:
             pickle.dump(vari_list,f)
         with open(fitname,'wb') as f:
@@ -2052,7 +2052,7 @@ def own_time_per(filename_t):
         ###############################
 
         #see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SAM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2092,8 +2092,8 @@ def own_time_per(filename_t):
         class_reps['SAM'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"sam_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"sam_" + filename_t + ".pickle"
+        filename = "sam_" + filename_t + ".pickle"
+        fitname = "sam_" + filename_t + ".pickle"
         with open(filename,'wb') as f:
             pickle.dump(vari_list,f)
         with open(fitname,'wb') as f:
@@ -2108,7 +2108,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['TZP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2148,8 +2148,8 @@ def own_time_per(filename_t):
         class_reps['TZP'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"tzp_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"tzp_" + filename_t + ".pickle"
+        filename = "tzp_" + filename_t + ".pickle"
+        fitname = "tzp_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2164,7 +2164,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CZO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2204,8 +2204,8 @@ def own_time_per(filename_t):
         class_reps['CZO'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"czo_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"czo_" + filename_t + ".pickle"
+        filename = "czo_" + filename_t + ".pickle"
+        fitname = "czo_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2220,7 +2220,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CRO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2260,8 +2260,8 @@ def own_time_per(filename_t):
         class_reps['CRO'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"cro_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"cro_" + filename_t + ".pickle"
+        filename = "cro_" + filename_t + ".pickle"
+        fitname = "cro_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2276,7 +2276,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CAZ']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2317,8 +2317,8 @@ def own_time_per(filename_t):
         class_reps['CAZ'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"caz_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"caz_" + filename_t + ".pickle"
+        filename = "caz_" + filename_t + ".pickle"
+        fitname = "caz_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2333,7 +2333,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['FEP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2373,8 +2373,8 @@ def own_time_per(filename_t):
         class_reps['FEP'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"fep_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"fep_" + filename_t + ".pickle"
+        filename = "fep_" + filename_t + ".pickle"
+        fitname = "fep_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2389,7 +2389,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['MEM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2429,8 +2429,8 @@ def own_time_per(filename_t):
         class_reps['MEM'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"mem_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"mem_" + filename_t + ".pickle"
+        filename = "mem_" + filename_t + ".pickle"
+        fitname = "mem_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2445,7 +2445,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CIP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2485,8 +2485,8 @@ def own_time_per(filename_t):
         class_reps['CIP'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"cip_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"cip_" + filename_t + ".pickle"
+        filename = "cip_" + filename_t + ".pickle"
+        fitname = "cip_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2501,7 +2501,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['GEN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2541,8 +2541,8 @@ def own_time_per(filename_t):
         class_reps['GEN'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"gen_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"gen_" + filename_t + ".pickle"
+        filename = "gen_" + filename_t + ".pickle"
+        fitname = "gen_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2557,7 +2557,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SXT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2598,8 +2598,8 @@ def own_time_per(filename_t):
         class_reps['SXT'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"sxt_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"sxt_" + filename_t + ".pickle"
+        filename = "sxt_" + filename_t + ".pickle"
+        fitname = "sxt_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2614,7 +2614,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['NIT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2654,8 +2654,8 @@ def own_time_per(filename_t):
         class_reps['NIT'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"nit_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"nit_" + filename_t + ".pickle"
+        filename = "nit_" + filename_t + ".pickle"
+        fitname = "nit_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2670,7 +2670,7 @@ def own_time_per(filename_t):
         ###############################
 
         # see 'ampicillin' for notes
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['VAN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2711,8 +2711,8 @@ def own_time_per(filename_t):
         class_reps['VAN'] = class_report
 
         #save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"van_" + filename_t + ".pickle"
-        fitname = "#FILEPATH#/"+"van_" + filename_t + ".pickle"
+        filename = "van_" + filename_t + ".pickle"
+        fitname = "van_" + filename_t + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2742,7 +2742,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # read urines for first time period train-test df from csv
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
 
         #convert age vsar to string
         urines5['standard_age'] = urines5['standard_age'].map(str)
@@ -2764,7 +2764,7 @@ def across_time_per(filename_t,filename_t2):
         features = urines5.drop('Y', axis=1)
 
         #read in urines filtered to 2nd time period and repeat preprocessing
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['AMP']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -2812,8 +2812,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['AMP'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"amp_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"amp_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "amp_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "amp_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2829,7 +2829,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         #see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SAM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2840,7 +2840,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('SAM', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['SAM']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -2888,8 +2888,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['SAM'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"sam_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"sam_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "sam_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "sam_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2904,7 +2904,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['TZP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2915,7 +2915,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('TZP', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['TZP']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -2963,8 +2963,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['TZP'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"tzp_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"tzp_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "tzp_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "tzp_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -2979,7 +2979,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CZO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -2990,7 +2990,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('CZO', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['CZO']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3038,8 +3038,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['CZO'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"czo_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"czo_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "czo_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "czo_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3054,7 +3054,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CRO']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3065,7 +3065,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('CRO', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['CRO']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3113,8 +3113,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['CRO'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"cro_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"cro_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "cro_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "cro_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3129,7 +3129,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CAZ']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3140,7 +3140,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('CAZ', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['CAZ']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3188,8 +3188,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['CAZ'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"caz_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"caz_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "caz_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "caz_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3204,7 +3204,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['FEP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3215,7 +3215,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('FEP', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['FEP']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3263,8 +3263,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['FEP'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"fep_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"fep_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "fep_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "fep_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3279,7 +3279,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['MEM']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3290,7 +3290,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('MEM', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['MEM']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3338,8 +3338,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['MEM'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"mem_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"mem_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "mem_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "mem_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3354,7 +3354,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['CIP']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3365,7 +3365,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('CIP', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['CIP']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3413,8 +3413,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['CIP'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"cip_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"cip_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "cip_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "cip_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3429,7 +3429,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['GEN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3440,7 +3440,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('GEN', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['GEN']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3488,8 +3488,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['GEN'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"gen_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"gen_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "gen_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "gen_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3504,7 +3504,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['SXT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3515,7 +3515,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('SXT', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['SXT']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3564,8 +3564,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['SXT'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"sxt_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"sxt_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "sxt_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "sxt_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3580,7 +3580,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['NIT']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3591,7 +3591,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('NIT', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['NIT']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3639,8 +3639,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['NIT'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"nit_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"nit_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "nit_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "nit_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
@@ -3655,7 +3655,7 @@ def across_time_per(filename_t,filename_t2):
         ###############################
 
         # see notes for 'ampicillin'
-        urines5 = pd.read_csv("#FILEPATH#/"+filename_t)
+        urines5 = pd.read_csv(filename_t)
         urines5['standard_age'] = urines5['standard_age'].map(str)
         y = urines5['VAN']
         urines5 = pd.get_dummies(urines5.drop(drops, axis=1))
@@ -3666,7 +3666,7 @@ def across_time_per(filename_t,filename_t2):
         urines5 = urines5.drop('VAN', axis=1)
         features = urines5.drop('Y', axis=1)
 
-        urines6 = pd.read_csv("#FILEPATH#/"+filename_t2)
+        urines6 = pd.read_csv(filename_t2)
         urines6['standard_age'] = urines6['standard_age'].map(str)
         y = urines6['VAN']
         urines6 = pd.get_dummies(urines6.drop(drops, axis=1))
@@ -3715,8 +3715,8 @@ def across_time_per(filename_t,filename_t2):
         class_reps['VAN'] = class_report
 
         # save fit, variables, and hyperparameters
-        filename = "#FILEPATH#/"+"van_" + filename_t + "_" + filename_t2 + ".pickle"
-        fitname = "#FILEPATH#/"+"van_" + filename_t + "_" + filename_t2 + ".pickle"
+        filename = "van_" + filename_t + "_" + filename_t2 + ".pickle"
+        fitname = "van_" + filename_t + "_" + filename_t2 + ".pickle"
         with open(filename, 'wb') as f:
             pickle.dump(vari_list, f)
         with open(fitname, 'wb') as f:
