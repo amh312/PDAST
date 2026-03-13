@@ -32,10 +32,12 @@ Before running the code, the data and *Python* files should be saved into a secu
 Then, for the subsequent analyses:
 
 To reproduce the main model validation, microsimulation study, fairness analysis, stability analysis, and contextual analysis:  
-2. Run **UDAST_train_test_main.py**  
-3. Run **PDAST_microsimulation.R***  
-4. Run **PDAST_stability.R**
-5. Run **PDAST_contextual_analysis.R**  
+2. Run **UDAST_exploratory_testing.py**
+3. Run **PDAST_exploratory_summary.R**
+4. Run **UDAST_train_test_main.py**  
+5. Run **PDAST_microsimulation.R***  
+6. Run **PDAST_stability.R**
+7. Run **PDAST_contextual_analysis.R**  
 
 To reproduce the model validation sensitivity analysis where organism identification and other AST results are also available:  
 2. Run **UDAST_train_test_org_id.py**  
@@ -71,4 +73,3 @@ Small simulated datasets are provided. These will not reproduce the results of t
 6. Run **PDAST_microsim_test.R**
 
 This testing code will take approximately 10-15 minutes to run, and will produce AUC-ROC graphs, bar charts of the most informative variable coefficients, performance metrics reported in Table 2, the dot plot from the main microsimulation analysis, the antimicrobial dot plot, and the decision threshold sensitivity analysis plots.
-
