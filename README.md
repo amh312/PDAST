@@ -32,8 +32,8 @@ Before running the code, the data and *Python* files should be saved into a secu
 Then, for the subsequent analyses:
 
 To reproduce the main model validation, microsimulation study, fairness analysis, stability analysis, and contextual analysis:  
-2. Run **UDAST_exploratory_testing.py**
-3. Run **PDAST_exploratory_summary.R**
+2. Run **UDAST_exploratory_testing.py**  
+3. Run **PDAST_exploratory_summary.R**  
 4. Run **UDAST_train_test_main.py**  
 5. Run **PDAST_microsimulation.R***  
 6. Run **PDAST_stability.R**
